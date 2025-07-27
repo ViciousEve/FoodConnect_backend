@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FoodConnectAPI.Models
+namespace FoodConnectAPI.Entities
 {
     public class Comment
     {

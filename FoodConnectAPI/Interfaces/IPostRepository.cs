@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Models;
+﻿using FoodConnectAPI.Entities;
 
 namespace FoodConnectAPI.Interfaces
 {

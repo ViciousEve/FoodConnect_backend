@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Models;
+﻿using FoodConnectAPI.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FoodConnectAPI.Data
