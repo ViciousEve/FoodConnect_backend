@@ -1,0 +1,77 @@
+﻿using FoodConnectAPI.Data;
+using FoodConnectAPI.Interfaces;
+using FoodConnectAPI.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace FoodConnectAPI.Repositories
+{
+    public class CommentRepository : ICommentRepository
+    {
+        private readonly AppDbContext _context;
+
+        public CommentRepository(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<Comment> GetCommentByIdAsync(int commentId)
+        {
+            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+        }
+
+        public async Task<IEnumerable<Comment>> GetAllCommentsAsync()
+        {
+            return await _context.Comments.Include(c => c.User).Include(c => c.Post).ToListAsync();
+        }
+
+        public async Task<IEnumerable<Comment>> GetCommentsByPostIdAsync(int postId)
+        {
+            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
+                .Where(c => c.PostId == postId).ToListAsync();
+        }
+
+        public async Task<IEnumerable<Comment>> GetCommentsByUserIdAsync(int userId)
+        {
+            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
+                .Where(c => c.UserId == userId).ToListAsync();
+        }
+
+        public async Task<Comment> UpdateCommentAsync(Comment comment)
+        {
+            var commentToUpdate = await _context.Comments.FindAsync(comment.Id);
+            if (commentToUpdate == null)
+            {
+                throw new KeyNotFoundException("Comment not found");
+            }
+            commentToUpdate.Content = comment.Content;
+            commentToUpdate.CreatedAt = comment.CreatedAt;
+            commentToUpdate.UserId = comment.UserId;
+            commentToUpdate.PostId = comment.PostId;
+            return commentToUpdate;
+        }
+
+        public async Task<bool> DeleteCommentAsync(int commentId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null)
+            {
+                return false;
+            }
+            _context.Comments.Remove(comment);
+            return true;
+        }
+
+        public async Task CreateCommentAsync(Comment comment)
+        {
+            await _context.Comments.AddAsync(comment);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
+}
