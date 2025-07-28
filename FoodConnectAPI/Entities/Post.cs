@@ -18,7 +18,7 @@ namespace FoodConnectAPI.Entities
 
         public double? Calories { get; set; } // Optional, can be null
 
-        public List<string> ImagePaths { get; set; } // URL to the image of the post
+        public List<Media> Images { get; set; } // image(s) of the post
 
         public int Likes { get; set; }
 

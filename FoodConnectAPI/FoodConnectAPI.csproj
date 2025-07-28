@@ -9,8 +9,8 @@
   <ItemGroup>
     <Folder Include="Config\" />
     <Folder Include="Controllers\" />
+    <Folder Include="Migrations\" />
     <Folder Include="wwwroot\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <ItemGroup>
