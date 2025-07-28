@@ -1,4 +1,6 @@
-﻿namespace FoodConnectAPI.Interfaces.Services
+﻿using FoodConnectAPI.Entities;
+
+namespace FoodConnectAPI.Interfaces.Services
 {
     public interface IPostService
     {

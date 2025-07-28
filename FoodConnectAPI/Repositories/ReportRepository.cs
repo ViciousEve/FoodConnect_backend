@@ -56,6 +56,24 @@ namespace FoodConnectAPI.Repositories
             await _context.Reports.AddAsync(report);
         }
 
+        /// <summary>
+        /// Creates a report and returns its ID.
+        /// This methods saves changes to the database immediately as to generate the ID.
+        /// </summary>
+        /// <param name="report"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Report report)
+        {
+            await _context.Reports.AddAsync(report);
+            await _context.SaveChangesAsync();
+            return report.Id;
+        }
+
+        /// <summary>
+        /// Deletes a report by its ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="reportId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteReportAsync(int reportId)
         {
             var report = await _context.Reports.FindAsync(reportId);
@@ -65,6 +83,11 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Deletes all reports associated with a specific post ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="postId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteReportsByPostIdAsync(int postId)
         {
             var reports = await _context.Reports.Where(r => r.PostId == postId).ToListAsync();

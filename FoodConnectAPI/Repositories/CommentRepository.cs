@@ -39,6 +39,12 @@ namespace FoodConnectAPI.Repositories
                 .Where(c => c.UserId == userId).ToListAsync();
         }
 
+        /// <summary>
+        /// Updates an existing comment in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="comment"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task<Comment> UpdateCommentAsync(Comment comment)
         {
             var commentToUpdate = await _context.Comments.FindAsync(comment.Id);
@@ -53,6 +59,11 @@ namespace FoodConnectAPI.Repositories
             return commentToUpdate;
         }
 
+        /// <summary>
+        /// Deletes a comment from the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="commentId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteCommentAsync(int commentId)
         {
             var comment = await _context.Comments.FindAsync(commentId);
@@ -64,6 +75,11 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Creates a new comment in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="comment"></param>
+        /// <returns></returns>
         public async Task CreateCommentAsync(Comment comment)
         {
             await _context.Comments.AddAsync(comment);
@@ -72,6 +88,19 @@ namespace FoodConnectAPI.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a new comment in the database and returns its ID. 
+        /// This method save changes immediately as to generate the ID.
+        /// </summary>
+        /// <param name="comment"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Comment comment)
+        {
+            await _context.Comments.AddAsync(comment);
+            await _context.SaveChangesAsync();
+            return comment.Id;
         }
     }
 }

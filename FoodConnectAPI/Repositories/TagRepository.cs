@@ -52,17 +52,32 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Creates a new tag in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
         public async Task CreateTagAsync(Tag tag)
         {
             await _context.Tags.AddAsync(tag);
         }
 
+        /// <summary>
+        /// Updates an existing tag in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
         public async Task<Tag> UpdateTagAsync(Tag tag)
         {
             _context.Tags.Update(tag);
             return tag;
         }
 
+        /// <summary>
+        /// Deletes a tag from the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tagId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteTagAsync(int tagId)
         {
             var tag = await _context.Tags.FindAsync(tagId);
@@ -80,6 +95,19 @@ namespace FoodConnectAPI.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a new tag and returns its ID after saving to the database. 
+        /// This methods saves the changes immediately as to generate the ID.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Tag tag)
+        {
+            await _context.Tags.AddAsync(tag);
+            await _context.SaveChangesAsync();
+            return tag.Id;
         }
     }
 } 

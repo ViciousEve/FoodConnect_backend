@@ -56,6 +56,12 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Updates an existing post in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="post"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task<Post> UpdatePostAsync(Post post)
         {
             var postToUpdate = await _context.Posts.FindAsync(post.Id);
@@ -73,6 +79,11 @@ namespace FoodConnectAPI.Repositories
             return postToUpdate;
         }
 
+        /// <summary>
+        /// Deletes a post from the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="postId"></param>
+        /// <returns></returns>
         public async Task<bool> DeletePostAsync(int postId)
         {
             var post = await _context.Posts.FindAsync(postId);
@@ -84,6 +95,11 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Creates a new post in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="post"></param>
+        /// <returns></returns>
         public async Task CreatePostAsync(Post post)
         {
             await _context.Posts.AddAsync(post);
@@ -92,6 +108,19 @@ namespace FoodConnectAPI.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a new post in the database and returns its ID.
+        /// This method saves changes immediately as to generate the ID.
+        /// </summary>
+        /// <param name="post"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Post post)
+        {
+            await _context.Posts.AddAsync(post);
+            await _context.SaveChangesAsync();
+            return post.Id;
         }
     }
 }
