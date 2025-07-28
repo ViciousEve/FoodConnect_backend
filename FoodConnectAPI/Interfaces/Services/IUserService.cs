@@ -1,9 +1,13 @@
-﻿namespace FoodConnectAPI.Interfaces.Services
+﻿using FoodConnectAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FoodConnectAPI.Interfaces.Services
 {
     public interface IUserService
     {
-        public Task<bool> IsUsernameAvailableAsync(string username);
+        public Task<String> AuthenticateAsync([FromBody] UserLoginDto userLoginDto);
+        public Task RegisterAsync([FromBody] UserRegisterDto userRegisterDto);
         public Task<bool> IsEmailAvailableAsync(string email);
-        public Task<bool> IsPhoneNumberAvailableAsync(string phoneNumber);
+        public Task DeleteAsync(string email);
     }
 }
