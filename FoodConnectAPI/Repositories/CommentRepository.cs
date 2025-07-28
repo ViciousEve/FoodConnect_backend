@@ -1,9 +1,9 @@
 ﻿using FoodConnectAPI.Data;
-using FoodConnectAPI.Interfaces;
-using FoodConnectAPI.Models;
+using FoodConnectAPI.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FoodConnectAPI.Interfaces.Repositories;
 
 namespace FoodConnectAPI.Repositories
 {

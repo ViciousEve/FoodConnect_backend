@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FoodConnectAPI.Models
+namespace FoodConnectAPI.Entities
 {
     public class Post
     {
@@ -18,7 +18,7 @@ namespace FoodConnectAPI.Models
 
         public double? Calories { get; set; } // Optional, can be null
 
-        public List<string> ImagePaths { get; set; } // URL to the image of the post
+        public List<Media> Images { get; set; } // image(s) of the post
 
         public int Likes { get; set; }
 
@@ -28,6 +28,8 @@ namespace FoodConnectAPI.Models
         public User User { get; set; } 
 
         public List<Comment> Comments { get; set; }
-
+        public List<Like> PostLikes { get; set; }
+        public List<PostTag> PostTags { get; set; }
+        public List<Report> Reports { get; set; }
     }
 }

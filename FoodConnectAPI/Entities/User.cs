@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FoodConnectAPI.Models
+namespace FoodConnectAPI.Entities
 {
     public class User
     {
@@ -27,6 +27,9 @@ namespace FoodConnectAPI.Models
 
         public List<Post> Posts { get; set; } //Users posts
         public List<Comment> Comments { get; set; }
-
+        public List<Like> Likes { get; set; }
+        public List<Follow> Followers { get; set; } // Users who follow this user
+        public List<Follow> Following { get; set; } // Users this user follows
+        public List<Report> Reports { get; set; }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using FoodConnectAPI.Data;
-using FoodConnectAPI.Interfaces;
-using FoodConnectAPI.Models;
+using FoodConnectAPI.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FoodConnectAPI.Interfaces.Repositories;
 
 namespace FoodConnectAPI.Repositories
 {
@@ -18,19 +18,42 @@ namespace FoodConnectAPI.Repositories
 
         public async Task<Post> GetPostByIdAsync(int postId)
         {
-            return await _context.Posts.Include(p => p.User).Include(p => p.Comments)
+            return await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Comments)
+                .Include(p => p.Images)
+                .Include(p => p.PostLikes)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Include(p => p.Reports)
                 .FirstOrDefaultAsync(p => p.Id == postId);
         }
 
         public async Task<IEnumerable<Post>> GetAllPostsAsync()
         {
-            return await _context.Posts.Include(p => p.User).Include(p => p.Comments).ToListAsync();
+            return await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Comments)
+                .Include(p => p.Images)
+                .Include(p => p.PostLikes)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Include(p => p.Reports)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Post>> GetPostsByUserIdAsync(int userId)
         {
-            return await _context.Posts.Include(p => p.User).Include(p => p.Comments)
-                .Where(p => p.UserId == userId).ToListAsync();
+            return await _context.Posts
+                .Include(p => p.User)
+                .Include(p => p.Comments)
+                .Include(p => p.Images)
+                .Include(p => p.PostLikes)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Include(p => p.Reports)
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
         }
 
         public async Task<Post> UpdatePostAsync(Post post)
@@ -44,7 +67,6 @@ namespace FoodConnectAPI.Repositories
             postToUpdate.IngredientsList = post.IngredientsList;
             postToUpdate.Description = post.Description;
             postToUpdate.Calories = post.Calories;
-            postToUpdate.ImagePaths = post.ImagePaths;
             postToUpdate.Likes = post.Likes;
             postToUpdate.CreatedAt = post.CreatedAt;
             postToUpdate.UserId = post.UserId;

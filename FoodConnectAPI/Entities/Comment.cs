@@ -1,10 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FoodConnectAPI.Models
+namespace FoodConnectAPI.Entities
 {
     public class Comment
     {
         public int Id { get; set; }
+        
+        [Required]
+        [MaxLength(500)]
         public string Content { get; set; } 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
