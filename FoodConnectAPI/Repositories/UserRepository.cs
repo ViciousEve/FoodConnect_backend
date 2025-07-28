@@ -1,7 +1,7 @@
 ﻿using FoodConnectAPI.Data;
-using FoodConnectAPI.Interfaces;
 using FoodConnectAPI.Entities;
 using Microsoft.EntityFrameworkCore;
+using FoodConnectAPI.Interfaces.Repositories;
 
 namespace FoodConnectAPI.Repositories
 {
@@ -32,24 +32,49 @@ namespace FoodConnectAPI.Repositories
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
-            return await _context.Users.Include(u => u.Posts).Include(u => u.Comments).ToListAsync();
+            return await _context.Users
+                .Include(u => u.Posts)
+                .Include(u => u.Comments)
+                .Include(u => u.Likes)
+                .Include(u => u.Followers)
+                .Include(u => u.Following)
+                .Include(u => u.Reports)
+                .ToListAsync();
         }
 
         public async Task<User> GetByUserNameAsync(string userName)
         {
-            return await _context.Users.Include(u => u.Posts).Include(u => u.Comments)
+            return await _context.Users
+                .Include(u => u.Posts)
+                .Include(u => u.Comments)
+                .Include(u => u.Likes)
+                .Include(u => u.Followers)
+                .Include(u => u.Following)
+                .Include(u => u.Reports)
                 .FirstOrDefaultAsync(u => u.UserName == userName);
         }
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.Include(u => u.Posts).Include(u => u.Comments)
+            return await _context.Users
+                .Include(u => u.Posts)
+                .Include(u => u.Comments)
+                .Include(u => u.Likes)
+                .Include(u => u.Followers)
+                .Include(u => u.Following)
+                .Include(u => u.Reports)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<User> GetUserByIdAsync(int userId)
         {
-            return await _context.Users.Include(u => u.Posts).Include(u => u.Comments)
+            return await _context.Users
+                .Include(u => u.Posts)
+                .Include(u => u.Comments)
+                .Include(u => u.Likes)
+                .Include(u => u.Followers)
+                .Include(u => u.Following)
+                .Include(u => u.Reports)
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }
 

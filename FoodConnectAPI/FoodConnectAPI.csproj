@@ -9,6 +9,7 @@
   <ItemGroup>
     <Folder Include="Config\" />
     <Folder Include="Controllers\" />
+    <Folder Include="Interfaces\Services\" />
     <Folder Include="Migrations\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>

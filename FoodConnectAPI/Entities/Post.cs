@@ -28,6 +28,8 @@ namespace FoodConnectAPI.Entities
         public User User { get; set; } 
 
         public List<Comment> Comments { get; set; }
-
+        public List<Like> PostLikes { get; set; }
+        public List<PostTag> PostTags { get; set; }
+        public List<Report> Reports { get; set; }
     }
 }

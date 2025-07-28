@@ -1,6 +1,6 @@
 ﻿using FoodConnectAPI.Entities;
 
-namespace FoodConnectAPI.Interfaces
+namespace FoodConnectAPI.Interfaces.Repositories
 {
     public interface IUserRepository
     {
