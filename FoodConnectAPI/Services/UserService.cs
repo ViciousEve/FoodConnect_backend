@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using FoodConnectAPI.Entities;
 using FoodConnectAPI.Data;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 
 namespace FoodConnectAPI.Services
 {
@@ -14,13 +18,15 @@ namespace FoodConnectAPI.Services
         private readonly IPostRepository _postRepository;
         private readonly ICommentRepository _commentRepository;
         private readonly AppDbContext _dbContext;
+        private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext)
+        public UserService(IUserRepository userRepository, IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IConfiguration _configuration)
         {
             _userRepository = userRepository;
             _postRepository = postRepository;
             _commentRepository = commentRepository;
             _dbContext = dbContext;
+            _configuration = _configuration;
         }
 
         public async Task DeleteAsync(string email)
@@ -66,10 +72,44 @@ namespace FoodConnectAPI.Services
             }
         }
 
-        public Task<string> AuthenticateAsync([FromBody] UserLoginDto userLoginDto)
+        public async Task<UserDto> AuthenticateAsync([FromBody] UserLoginDto userLoginDto)
         {
             //Authentication logic using Jwt
-            return Task.FromResult("");
+            var user = await _userRepository.GetUserByEmailAsync(userLoginDto.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.PasswordHash))
+            {
+                throw new UnauthorizedAccessException("Invalid credentials"); // Invalid credentials
+            }
+            //Create Jwt token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]); // Replace with your actual secret key
+
+            if (!int.TryParse(_configuration["Jwt:ExpirationMinutes"], out int expirationMinutes))
+            {
+                expirationMinutes = 30; // fallback default
+            }
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email)
+                }),
+                Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),// Token expiration time
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+            // Return user DTO with token
+            return new UserDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                Token = tokenString
+            };
         }
 
         public Task<bool> IsEmailAvailableAsync(string email)
@@ -83,7 +123,7 @@ namespace FoodConnectAPI.Services
         }
 
 
-        public Task RegisterAsync([FromBody] UserRegisterDto userRefisterDto)
+        public Task RegisterAsync([FromBody] UserRegisterDto userRegisterDto)
         {
             throw new NotImplementedException();
         }
