@@ -20,13 +20,13 @@ namespace FoodConnectAPI.Services
         private readonly AppDbContext _dbContext;
         private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IConfiguration _configuration)
+        public UserService(IUserRepository userRepository, IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _postRepository = postRepository;
             _commentRepository = commentRepository;
             _dbContext = dbContext;
-            _configuration = _configuration;
+            _configuration = configuration;
         }
 
         public async Task DeleteAsync(string email)
@@ -80,9 +80,18 @@ namespace FoodConnectAPI.Services
             {
                 throw new UnauthorizedAccessException("Invalid credentials"); // Invalid credentials
             }
+            
             //Create Jwt token
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]); // Replace with your actual secret key
+            
+            // Get JWT configuration with fallback
+            var secretKey = _configuration["Jwt:SecretKey"];
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                throw new InvalidOperationException("JWT SecretKey is not configured. Please check appsettings.json");
+            }
+            
+            var key = Encoding.ASCII.GetBytes(secretKey);
 
             if (!int.TryParse(_configuration["Jwt:ExpirationMinutes"], out int expirationMinutes))
             {
@@ -112,14 +121,14 @@ namespace FoodConnectAPI.Services
             };
         }
 
-        public Task<bool> IsEmailAvailableAsync(string email)
+        public async Task<bool> IsEmailAvailableAsync(string email)
         {
-            var user = _userRepository.GetUserByEmailAsync(email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
             if(user == null)
             {
-                return Task.FromResult(true); // Email is available
+                return true; // Email is available
             }
-            return Task.FromResult(false); // Email is not available
+            return false; // Email is not available
         }
 
 
