@@ -36,7 +36,8 @@ namespace FoodConnectAPI.Services
                 try
                 {
                     // Find user by email
-                    var user = await _userRepository.GetUserByEmailAsync(email);
+                    string normalizedEmail = email.Trim().ToLowerInvariant();
+                    var user = await _userRepository.GetUserByEmailAsync(normalizedEmail);
                     if (user == null)
                     {
                         throw new KeyNotFoundException($"User with email {email} not found");
@@ -72,7 +73,7 @@ namespace FoodConnectAPI.Services
             }
         }
 
-        public async Task<UserDto> AuthenticateAsync([FromBody] UserLoginDto userLoginDto)
+        public async Task<UserDto> AuthenticateAsync(UserLoginDto userLoginDto)
         {
             //Authentication logic using Jwt
             var user = await _userRepository.GetUserByEmailAsync(userLoginDto.Email);
@@ -132,9 +133,35 @@ namespace FoodConnectAPI.Services
         }
 
 
-        public Task RegisterAsync([FromBody] UserRegisterDto userRegisterDto)
+        public async Task RegisterAsync(UserRegisterDto userRegisterDto)
         {
-            throw new NotImplementedException();
+            //Validate that password match
+            if (userRegisterDto.Password != userRegisterDto.ConfirmPassword)
+            {
+                throw new ArgumentException("Passwords do not match");
+            }
+            //check if email is available
+            string normalizedEmail = userRegisterDto.Email.Trim().ToLowerInvariant();
+            bool isEmailAvailable = await IsEmailAvailableAsync(normalizedEmail);
+            if (!isEmailAvailable)
+            {
+                throw new ArgumentException("Email is already registered");
+            }
+
+            //Create user entity
+            var newUser = new User
+            {
+                UserName = userRegisterDto.UserName,
+                Email = normalizedEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(userRegisterDto.Password),
+                Region = userRegisterDto.Region,
+                Role = "user", // Default role for new users
+                TotalLikesReceived = 0
+            };
+
+            //Add user to repository
+            await _userRepository.CreateUserAsync(newUser);
+            await _userRepository.SaveChangesAsync();
         }
     }
 }

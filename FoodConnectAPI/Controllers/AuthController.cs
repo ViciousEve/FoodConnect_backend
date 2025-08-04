@@ -20,20 +20,39 @@ namespace FoodConnectAPI.Controllers
         {
             if (userLoginDto == null)
             {
-                return BadRequest("Invalid login request");
+                return BadRequest(new { error = "Invalid login request" });
             }
             try
             {
-                var user = await _userService.AuthenticateAsync(userLoginDto);
-                if (user == null)
+                var userDto = await _userService.AuthenticateAsync(userLoginDto);
+                if (userDto == null)
                 {
-                    return Unauthorized("Invalid email or password");
+                    return Unauthorized(new { error = "Invalid email or password" });
                 }
-                return Ok(user);
+                return Ok(new { message = "Login successful", user = userDto });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto userRegisterDto)
+        {
+            
+            try
+            {
+                await _userService.RegisterAsync(userRegisterDto);
+                return Ok(new { message = "User registered successfully"});
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new {error = ex.Message});
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
             }
         }
     }
