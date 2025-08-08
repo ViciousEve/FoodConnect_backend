@@ -14,6 +14,7 @@ namespace FoodConnectAPI.Entities
         [MaxLength(255)]
         public string Email { get; set; }
 
+        [Required]
         public string PasswordHash { get; set; }
 
         [Required]

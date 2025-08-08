@@ -1,4 +1,5 @@
 ﻿using FoodConnectAPI.Entities;
+using FoodConnectAPI.Models;
 
 namespace FoodConnectAPI.Interfaces.Services
 {
@@ -9,6 +10,6 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<IEnumerable<Post>> GetPostsByUserIdAsync(int userId);
         Task<Post> UpdatePostAsync(Post post);
         Task<bool> DeletePostAsync(int postId);
-        Task CreatePostAsync(Post post);
+        Task CreatePostAsync(int userId, PostAddDto post);
     }
 }

@@ -89,7 +89,7 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="postId"></param>
         /// <returns></returns>
-        public async Task<bool> DeletePostTagsByPostIdAsync(int postId)
+        public async Task<bool> DeleteAllByPostIdAsync(int postId)
         {
             var postTags = await _context.PostTags.Where(pt => pt.PostId == postId).ToListAsync();
             if (!postTags.Any()) return false;
@@ -101,6 +101,11 @@ namespace FoodConnectAPI.Repositories
         public async Task<bool> PostTagExistsAsync(int postId, int tagId)
         {
             return await _context.PostTags.AnyAsync(pt => pt.PostId == postId && pt.TagId == tagId);
+        }
+
+        public async Task<bool> ExistsWithTagIdAsync(int tagId)
+        {
+            return await _context.PostTags.AnyAsync(pt => pt.TagId == tagId);
         }
 
         public async Task SaveChangesAsync()

@@ -2,5 +2,6 @@
 {
     public interface ILikeService
     {
+        //Todo: create methods 
     }
 }

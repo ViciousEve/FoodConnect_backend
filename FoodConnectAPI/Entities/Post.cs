@@ -14,13 +14,15 @@ namespace FoodConnectAPI.Entities
         [MaxLength(1000)]
         public string IngredientsList { get; set; } // Comma-separated list of ingredients + ammount
 
+        [Required]
+        [MaxLength(2000)]
         public string Description { get; set; } // A brief description of the post + steps
 
         public double? Calories { get; set; } // Optional, can be null
 
         public List<Media> Images { get; set; } // image(s) of the post
 
-        public int Likes { get; set; }
+        public int Likes { get; set; } = 0; // Number of likes, default is 0
 
         public DateTime CreatedAt { get; set; }
 

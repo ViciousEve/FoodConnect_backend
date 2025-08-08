@@ -22,7 +22,7 @@ namespace FoodConnectAPI.Test.Services
         private readonly Mock<ICommentRepository> _mockCommentRepository;
         private readonly Mock<AppDbContext> _mockDbContext;
         private readonly Mock<IConfiguration> _mockConfiguration;
-        private readonly Mock<IDbContextTransaction> _mockTransaction;
+        //private readonly Mock<IDbContextTransaction> _mockTransaction;
         private readonly UserService _userService;
 
         public UserServiceTests()

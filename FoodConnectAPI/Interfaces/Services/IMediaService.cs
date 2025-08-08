@@ -1,6 +1,6 @@
 ﻿namespace FoodConnectAPI.Interfaces.Services
 {
-    public interface IFollowService
+    public interface IMediaService
     {
         //Todo: create methods 
     }

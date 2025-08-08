@@ -45,19 +45,13 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Tag>> SearchTagsByNameAsync(string searchTerm)
-        {
-            return await _context.Tags
-                .Where(t => t.Name.ToLower().Contains(searchTerm.ToLower()))
-                .ToListAsync();
-        }
 
         /// <summary>
         /// Creates a new tag in the database. Not persisted, use SaveChangesAsync to persist changes.
         /// </summary>
         /// <param name="tag"></param>
         /// <returns></returns>
-        public async Task CreateTagAsync(Tag tag)
+        public async Task CreateAsync(Tag tag)
         {
             await _context.Tags.AddAsync(tag);
         }
@@ -67,7 +61,7 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="tag"></param>
         /// <returns></returns>
-        public async Task<Tag> UpdateTagAsync(Tag tag)
+        public async Task<Tag> UpdateAsync(Tag tag)
         {
             _context.Tags.Update(tag);
             return tag;
@@ -78,7 +72,7 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="tagId"></param>
         /// <returns></returns>
-        public async Task<bool> DeleteTagAsync(int tagId)
+        public async Task<bool> DeleteAsync(int tagId)
         {
             var tag = await _context.Tags.FindAsync(tagId);
             if (tag == null) return false;
@@ -108,6 +102,18 @@ namespace FoodConnectAPI.Repositories
             await _context.Tags.AddAsync(tag);
             await _context.SaveChangesAsync();
             return tag.Id;
+        }
+
+        public async Task<List<Tag>> GetTagsByNamesAsync(List<string> names)
+        {
+            return await _context.Tags
+            .Where(t => names.Contains(t.Name))
+            .ToListAsync();
+        }
+
+        public async Task CreateRangeAsync(List<Tag> tags)
+        {
+            await _context.Tags.AddRangeAsync(tags);
         }
     }
 } 
