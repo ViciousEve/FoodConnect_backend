@@ -46,11 +46,35 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Creates a PostTag without saving changes to the database. Not persisted, use SaveChangesAsync() to persist.
+        /// </summary>
+        /// <param name="postTag"></param>
+        /// <returns></returns>
         public async Task CreatePostTagAsync(PostTag postTag)
         {
             await _context.PostTags.AddAsync(postTag);
         }
 
+        /// <summary>
+        /// Creates a PostTag and returns the IDs of the post and tag. 
+        /// This method save changes to the database immediately as to generate the IDs.
+        /// </summary>
+        /// <param name="postTag"></param>
+        /// <returns></returns>
+        public async Task<(int postId, int tagId)> CreateAndReturnIdAsync(PostTag postTag)
+        {
+            await _context.PostTags.AddAsync(postTag);
+            await _context.SaveChangesAsync();
+            return (postTag.PostId, postTag.TagId);
+        }
+
+        /// <summary>
+        /// Deletes a PostTag by postId and tagId. Not persisted, use SaveChangesAsync() to persist.
+        /// </summary>
+        /// <param name="postId"></param>
+        /// <param name="tagId"></param>
+        /// <returns></returns>
         public async Task<bool> DeletePostTagAsync(int postId, int tagId)
         {
             var postTag = await _context.PostTags.FirstOrDefaultAsync(pt => pt.PostId == postId && pt.TagId == tagId);
@@ -60,7 +84,12 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
-        public async Task<bool> DeletePostTagsByPostIdAsync(int postId)
+        /// <summary>
+        /// Deletes all PostTags associated with a specific postId. Not persisted, use SaveChangesAsync() to persist.
+        /// </summary>
+        /// <param name="postId"></param>
+        /// <returns></returns>
+        public async Task<bool> DeleteAllByPostIdAsync(int postId)
         {
             var postTags = await _context.PostTags.Where(pt => pt.PostId == postId).ToListAsync();
             if (!postTags.Any()) return false;
@@ -72,6 +101,11 @@ namespace FoodConnectAPI.Repositories
         public async Task<bool> PostTagExistsAsync(int postId, int tagId)
         {
             return await _context.PostTags.AnyAsync(pt => pt.PostId == postId && pt.TagId == tagId);
+        }
+
+        public async Task<bool> ExistsWithTagIdAsync(int tagId)
+        {
+            return await _context.PostTags.AnyAsync(pt => pt.TagId == tagId);
         }
 
         public async Task SaveChangesAsync()

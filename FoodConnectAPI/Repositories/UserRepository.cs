@@ -94,8 +94,18 @@ namespace FoodConnectAPI.Repositories
             userToUpdate.Email = user.Email;
             userToUpdate.PasswordHash = user.PasswordHash;
             userToUpdate.Role = user.Role;
-            
+            userToUpdate.Region = user.Region;
+            userToUpdate.TotalLikesReceived = user.TotalLikesReceived;
+           
             return userToUpdate;
         }
+
+        //Redundant method, as EF Core can handle this automatically
+        //public async Task<int> CreateAndReturnIdAsync(User user)
+        //{
+        //    await _context.Users.AddAsync(user);
+        //    await _context.SaveChangesAsync();
+        //    return user.Id;
+        //}
     }
 }

@@ -8,7 +8,7 @@ namespace FoodConnectAPI.Entities
         
         [Required]
         [MaxLength(500)]
-        public string Content { get; set; } 
+        public string Content { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public int UserId { get; set; } // Foreign key to User

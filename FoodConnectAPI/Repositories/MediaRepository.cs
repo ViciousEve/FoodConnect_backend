@@ -35,6 +35,9 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Creates a new media entry in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
         public async Task CreateMediaAsync(Media media)
         {
             await _context.Media.AddAsync(media);
@@ -46,6 +49,9 @@ namespace FoodConnectAPI.Repositories
             return media;
         }
 
+        /// <summary>
+        /// Deletes a media entry by its ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
         public async Task<bool> DeleteMediaAsync(int mediaId)
         {
             var media = await _context.Media.FindAsync(mediaId);
@@ -55,6 +61,9 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Deletes all media entries associated with a specific post ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
         public async Task<bool> DeleteMediaByPostIdAsync(int postId)
         {
             var mediaList = await _context.Media.Where(m => m.PostId == postId).ToListAsync();
@@ -67,6 +76,18 @@ namespace FoodConnectAPI.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a new media entry in the database and returns its ID.
+        /// This uses SaveChangesAsync to persist changes immediately as to generate an ID.
+        /// </summary>
+
+        public async Task<int> CreateAndReturnIdAsync(Media media)
+        {
+            await _context.Media.AddAsync(media);
+            await _context.SaveChangesAsync();
+            return media.Id;
         }
     }
 } 

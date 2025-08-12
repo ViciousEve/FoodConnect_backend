@@ -40,30 +40,38 @@ namespace FoodConnectAPI.Repositories
         public async Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId)
         {
             return await _context.Tags
-                .Include(t => t.PostTags)
-                .Where(t => t.PostTags.Any(pt => pt.PostId == postId))
-                .ToListAsync();
+                    .Where(t => t.PostTags.Any(pt => pt.PostId == postId))
+                    .ToListAsync();
         }
 
-        public async Task<IEnumerable<Tag>> SearchTagsByNameAsync(string searchTerm)
-        {
-            return await _context.Tags
-                .Where(t => t.Name.ToLower().Contains(searchTerm.ToLower()))
-                .ToListAsync();
-        }
 
-        public async Task CreateTagAsync(Tag tag)
+        /// <summary>
+        /// Creates a new tag in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        public async Task CreateAsync(Tag tag)
         {
             await _context.Tags.AddAsync(tag);
         }
 
-        public async Task<Tag> UpdateTagAsync(Tag tag)
+        /// <summary>
+        /// Updates an existing tag in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        public async Task<Tag> UpdateAsync(Tag tag)
         {
             _context.Tags.Update(tag);
             return tag;
         }
 
-        public async Task<bool> DeleteTagAsync(int tagId)
+        /// <summary>
+        /// Deletes a tag from the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="tagId"></param>
+        /// <returns></returns>
+        public async Task<bool> DeleteAsync(int tagId)
         {
             var tag = await _context.Tags.FindAsync(tagId);
             if (tag == null) return false;
@@ -80,6 +88,31 @@ namespace FoodConnectAPI.Repositories
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a new tag and returns its ID after saving to the database. 
+        /// This methods saves the changes immediately as to generate the ID.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Tag tag)
+        {
+            await _context.Tags.AddAsync(tag);
+            await _context.SaveChangesAsync();
+            return tag.Id;
+        }
+
+        public async Task<List<Tag>> GetTagsByNamesAsync(List<string> names)
+        {
+            return await _context.Tags
+            .Where(t => names.Contains(t.Name))
+            .ToListAsync();
+        }
+
+        public async Task CreateRangeAsync(List<Tag> tags)
+        {
+            await _context.Tags.AddRangeAsync(tags);
         }
     }
 } 

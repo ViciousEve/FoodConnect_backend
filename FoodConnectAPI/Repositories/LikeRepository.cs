@@ -59,11 +59,34 @@ namespace FoodConnectAPI.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Creates a new like in the database. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="like"></param>
+        /// <returns></returns>
         public async Task CreateLikeAsync(Like like)
         {
             await _context.Likes.AddAsync(like);
         }
 
+        /// <summary>
+        /// Creates a new like in the database and returns the ID of the created like.
+        /// This method save changes immediately as to generate the ID.
+        /// </summary>
+        /// <param name="like"></param>
+        /// <returns></returns>
+        public async Task<int> CreateAndReturnIdAsync(Like like)
+        {
+            await _context.Likes.AddAsync(like);
+            await _context.SaveChangesAsync();
+            return like.Id;
+        }
+
+        /// <summary>
+        /// Deletes a like by its ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="likeId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteLikeAsync(int likeId)
         {
             var like = await _context.Likes.FindAsync(likeId);
@@ -73,6 +96,12 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Deletes a like by user ID and post ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="postId"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteLikeByUserAndPostAsync(int userId, int postId)
         {
             var like = await _context.Likes.FirstOrDefaultAsync(l => l.UserId == userId && l.PostId == postId);

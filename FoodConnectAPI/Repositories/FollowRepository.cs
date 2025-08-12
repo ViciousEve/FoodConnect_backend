@@ -69,6 +69,20 @@ namespace FoodConnectAPI.Repositories
             await _context.Follows.AddAsync(follow);
         }
 
+        /// <summary>
+        /// This method creates a follow and returns the ID of the newly created follow. 
+        ///This use it's own SaveChangesAsync method to ensure the follow is saved immediately as to generate Id
+        /// </summary>
+        public async Task<int> CreateAndReturnIdAsync(Follow follow)
+        {
+            await _context.Follows.AddAsync(follow);
+            await _context.SaveChangesAsync();
+            return follow.Id;
+        }
+
+        /// <summary>
+        /// Deletes a follow by its ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
         public async Task<bool> DeleteFollowAsync(int followId)
         {
             var follow = await _context.Follows.FindAsync(followId);
@@ -78,6 +92,9 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        /// <summary>
+        /// Deletes a follow by the follower and followed user IDs. Not persisted, use SaveChangesAsync to persist changes.
+        /// </summary>
         public async Task<bool> DeleteFollowByUsersAsync(int followerId, int followedId)
         {
             var follow = await _context.Follows.FirstOrDefaultAsync(f => f.FollowerId == followerId && f.FollowedId == followedId);
@@ -86,6 +103,7 @@ namespace FoodConnectAPI.Repositories
             _context.Follows.Remove(follow);
             return true;
         }
+
 
         public async Task<bool> UserIsFollowingAsync(int followerId, int followedId)
         {

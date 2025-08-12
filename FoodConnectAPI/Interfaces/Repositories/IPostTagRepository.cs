@@ -10,8 +10,9 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<IEnumerable<PostTag>> GetAllPostTagsAsync();
         Task CreatePostTagAsync(PostTag postTag);
         Task<bool> DeletePostTagAsync(int postId, int tagId);
-        Task<bool> DeletePostTagsByPostIdAsync(int postId);
+        Task<bool> DeleteAllByPostIdAsync(int postId);
         Task<bool> PostTagExistsAsync(int postId, int tagId);
+        Task<bool> ExistsWithTagIdAsync(int tagId);
         Task SaveChangesAsync();
     }
 }
