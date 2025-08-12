@@ -55,6 +55,11 @@ namespace FoodConnectAPI.Services
             return await _tagRepository.GetTagByIdAsync(tagId);
         }
 
+        public async Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId)
+        {
+            return await _tagRepository.GetTagsByPostIdAsync(postId);
+        }
+
         public async Task<Tag> GetTagByNameAsync(string name)
         {
             if (string.IsNullOrWhiteSpace(name))

@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
 using Xunit.Sdk;
+using FluentAssertions;
 
 namespace FoodConnectAPI.Test.Services
 {
@@ -52,8 +53,8 @@ namespace FoodConnectAPI.Test.Services
             var result = await _tagService.ResolveOrCreateTagsAsync(tagNames);
 
             // Assert
-            Assert.Equal(2, result.Count);
-            Assert.All(result, r => Assert.Contains(r.Name, new[] { "spicy", "sweet" }));
+            result.Count.Should().Be(2);
+            result.Should().OnlyContain(r => new[] { "spicy", "sweet" }.Contains(r.Name));
 
             _mockTagRepository.Verify(repo => repo.CreateRangeAsync(It.IsAny<List<Tag>>()), Times.Never);
             _mockTagRepository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
@@ -82,9 +83,9 @@ namespace FoodConnectAPI.Test.Services
             var result = await _tagService.ResolveOrCreateTagsAsync(tagNames);
 
             // Assert
-            Assert.Equal(2, result.Count);
-            Assert.Contains(result, r => r.Name == "newtag");
-            Assert.Contains(result, r => r.Name == "anothertag");
+            result.Count.Should().Be(2);
+            result.Should().Contain(r => r.Name == "newtag");
+            result.Should().Contain(r => r.Name == "anothertag");
 
             _mockTagRepository.Verify(repo => repo.CreateRangeAsync(
                 It.Is<List<Tag>>(l => l.Count == 2 && l.All(t => normalized.Contains(t.Name)))
@@ -118,9 +119,9 @@ namespace FoodConnectAPI.Test.Services
             var result = await _tagService.ResolveOrCreateTagsAsync(input);
 
             // Assert
-            Assert.Equal(2, result.Count);
-            Assert.Contains(result, t => t.Name == "foo");
-            Assert.Contains(result, t => t.Name == "bar");
+            result.Count.Should().Be(2);
+            result.Should().Contain(t => t.Name == "foo");
+            result.Should().Contain(t => t.Name == "bar");
 
             _mockTagRepository.Verify(repo => repo.GetTagsByNamesAsync(normalized), Times.Once);
             _mockTagRepository.Verify(repo => repo.CreateRangeAsync(It.IsAny<List<Tag>>()), Times.Once);
@@ -140,7 +141,7 @@ namespace FoodConnectAPI.Test.Services
             var result = await _tagService.DeleteAsync(5);
 
             // Assert
-            Assert.False(result);
+            result.Should().BeFalse();
             _mockTagRepository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
         }
 
@@ -160,7 +161,7 @@ namespace FoodConnectAPI.Test.Services
             var result = await _tagService.DeleteAsync(7);
 
             // Assert
-            Assert.True(result);
+            result.Should().BeTrue();
             _mockTagRepository.Verify(r => r.DeleteAsync(7), Times.Once);
             _mockTagRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }

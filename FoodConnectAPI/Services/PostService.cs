@@ -24,19 +24,81 @@ namespace FoodConnectAPI.Services
             _tagService = tagService;
         }
 
-        public async Task<Post> GetPostByIdAsync(int postId)
+        public async Task<PostInfoDto> GetPostByIdAsync(int postId)
         {
-            return await _postRepository.GetPostByIdAsync(postId);
+            if(postId <= 0)
+                throw new ArgumentException("Invalid post ID", nameof(postId));
+
+            var post = await _postRepository.GetPostByIdAsync(postId);
+            if (post == null)
+                return null;
+            // Map Post to PostInfoDto
+            var postInfoDto = new PostInfoDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                IngredientsList = post.IngredientsList,
+                Description = post.Description,
+                Calories = post.Calories,
+                CreatedAt = post.CreatedAt,
+                UserId = post.UserId,
+                TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
+                ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
+                Likes = post.PostLikes.Count
+            };
+            return postInfoDto;
         }
 
-        public async Task<IEnumerable<Post>> GetAllPostsAsync()
+        public async Task<IEnumerable<PostInfoDto>> GetAllPostsAsync()
         {
-            return await _postRepository.GetAllPostsAsync();
+            var posts = await _postRepository.GetAllPostsAsync();
+            if (posts == null || !posts.Any())
+                return new List<PostInfoDto>();
+            // Map List<Post> to List<PostInfoDto>
+            var postDtos = posts.Select(post => new PostInfoDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                IngredientsList = post.IngredientsList,
+                Description = post.Description,
+                Calories = post.Calories,
+                CreatedAt = post.CreatedAt,
+                UserId = post.UserId,
+                TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
+                ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
+                Likes = post.PostLikes.Count,
+                UserName = post.User.UserName
+
+            }).ToList();
+            //Sort by CreatedAt newest first
+            postDtos = postDtos.OrderByDescending(p => p.CreatedAt).ToList();
+            return postDtos;
         }
 
-        public async Task<IEnumerable<Post>> GetPostsByUserIdAsync(int userId)
+        public async Task<IEnumerable<PostInfoDto>> GetPostsByUserIdAsync(int userId)
         {
-            return await _postRepository.GetPostsByUserIdAsync(userId);
+            if (userId <= 0)
+                throw new ArgumentException("Invalid user ID", nameof(userId));
+
+            var posts = await _postRepository.GetPostsByUserIdAsync(userId);
+
+            if (posts == null || !posts.Any())
+                return new List<PostInfoDto>();
+            // Map List<Post> to List<PostInfoDto>
+            var postDtos = posts.Select(post => new PostInfoDto
+            {
+                Id = post.Id,
+                Title = post.Title,
+                IngredientsList = post.IngredientsList,
+                Description = post.Description,
+                Calories = post.Calories,
+                CreatedAt = post.CreatedAt,
+                UserId = post.UserId,
+                TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
+                ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
+                Likes = post.Likes
+            }).ToList();
+            return postDtos;
         }
 
         public async Task<Post> UpdatePostAsync(Post post)
@@ -87,6 +149,7 @@ namespace FoodConnectAPI.Services
                 Calories = postAddDto.Calories ?? 0,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,
+                PostTags = new List<PostTag>()
             };
 
             // Add tags if provided

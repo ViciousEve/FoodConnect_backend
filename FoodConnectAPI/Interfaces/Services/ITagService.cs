@@ -10,6 +10,7 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<bool> DeleteAsync(int tagId);
         Task<bool> DeleteByNameAsync(string tagName);
         Task<Tag> GetTagByIdAsync(int tagId);
+        Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId);
         Task<Tag> GetTagByNameAsync(string name);
         Task<IEnumerable<Tag>> GetAllTagsAsync();
 

@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
+using FluentAssertions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FoodConnectAPI.Test.Services
 {
@@ -55,18 +57,167 @@ namespace FoodConnectAPI.Test.Services
         }
 
         [Fact]
-        public async Task GetPostByIdAsync_Returns_Post()
+        public async Task GetPostByIdAsync_ShouldThrowArgumentException_WhenIdIsInvalid()
         {
             // Arrange
-            var post = new Post { Id = 1, Title = "Test" };
-            _mockPostRepository.Setup(r => r.GetPostByIdAsync(1)).ReturnsAsync(post);
+            var invalidId = 0;
 
             // Act
-            var result = await _postService.GetPostByIdAsync(1);
+            Func<Task> act = async () => await _postService.GetPostByIdAsync(invalidId);
 
             // Assert
-            Assert.Equal(post.Id, result.Id);
-            Assert.Equal("Test", result.Title);
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*Invalid post ID*");
+        }
+
+        [Fact]
+        public async Task GetPostByIdAsync_ShouldReturnNull_WhenPostNotFound()
+        {
+            // Arrange
+            var postId = 1;
+            _mockPostRepository.Setup(r => r.GetPostByIdAsync(postId))
+                .ReturnsAsync((Post)null);
+
+            // Act
+            var result = await _postService.GetPostByIdAsync(postId);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetPostByIdAsync_ShouldReturnDto_WhenPostExists()
+        {
+            // Arrange
+            var postId = 1;
+            var post = new Post
+            {
+                Id = postId,
+                Title = "Test",
+                IngredientsList = "Eggs",
+                Description = "Desc",
+                Calories = 100,
+                CreatedAt = DateTime.UtcNow,
+                UserId = 2,
+                PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
+                Images = new List<Media> { new Media { Url = "url1" } },
+                PostLikes = new List<Like> { new Like() },
+            };
+            _mockPostRepository.Setup(r => r.GetPostByIdAsync(postId)).ReturnsAsync(post);
+
+            // Act
+            var result = await _postService.GetPostByIdAsync(postId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Id.Should().Be(postId);
+            result.TagNames.Should().Contain("Tag1");
+            result.ImagesUrl.Should().Contain("url1");
+            result.Likes.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetAllPostsAsync_ShouldReturnEmptyList_WhenNoPostsExist()
+        {
+            // Arrange
+            _mockPostRepository.Setup(r => r.GetAllPostsAsync())
+                .ReturnsAsync(new List<Post>());
+
+            // Act
+            var result = await _postService.GetAllPostsAsync();
+
+            // Assert
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task GetAllPostsAsync_ShouldReturnDtos_WhenPostsExist()
+        {
+            // Arrange
+            var posts = new List<Post>
+            {
+                new Post
+                {
+                    Id = 1,
+                    Title = "Post 1",
+                    IngredientsList = "Eggs",
+                    Description = "Desc",
+                    Calories = 100,
+                    CreatedAt = DateTime.UtcNow,
+                    UserId = 1,
+                    PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
+                    Images = new List<Media> { new Media { Url = "url1" } },
+                    PostLikes = new List<Like> { new Like() }
+                }
+            };
+            _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(posts);
+
+            // Act
+            var result = await _postService.GetAllPostsAsync();
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.First().Title.Should().Be("Post 1");
+            result.First().TagNames.Should().Contain("Tag1");
+        }
+
+        [Fact]
+        public async Task GetPostsByUserIdAsync_ShouldThrowArgumentException_WhenIdIsInvalid()
+        {
+            // Arrange
+            var invalidId = 0;
+
+            // Act
+            Func<Task> act = async () => await _postService.GetPostsByUserIdAsync(invalidId);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("*Invalid user ID*");
+        }
+
+        [Fact]
+        public async Task GetPostsByUserIdAsync_ShouldReturnEmptyList_WhenNoPostsExist()
+        {
+            // Arrange
+            _mockPostRepository.Setup(r => r.GetPostsByUserIdAsync(1))
+                .ReturnsAsync(new List<Post>());
+
+            // Act
+            var result = await _postService.GetPostsByUserIdAsync(1);
+
+            // Assert
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task GetPostsByUserIdAsync_ShouldReturnDtos_WhenPostsExist()
+        {
+            // Arrange
+            var posts = new List<Post>
+            {
+                new Post
+                {
+                    Id = 1,
+                    Title = "User Post",
+                    IngredientsList = "Eggs",
+                    Description = "Desc",
+                    Calories = 100,
+                    CreatedAt = DateTime.UtcNow,
+                    UserId = 1,
+                    PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
+                    Images = new List<Media> { new Media { Url = "url1" } },
+                    PostLikes = new List<Like> { new Like() }
+                }
+            };
+            _mockPostRepository.Setup(r => r.GetPostsByUserIdAsync(1)).ReturnsAsync(posts);
+
+            // Act
+            var result = await _postService.GetPostsByUserIdAsync(1);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.First().Title.Should().Be("User Post");
+            result.First().TagNames.Should().Contain("Tag1");
         }
 
         [Fact]
@@ -162,8 +313,51 @@ namespace FoodConnectAPI.Test.Services
             );
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() =>
-                postService.CreatePostAsync(1, null));
+            await FluentActions.Invoking(() => postService.CreatePostAsync(1, null))
+                .Should().ThrowAsync<ArgumentNullException>();
+        }
+
+        [Fact]
+        public async Task CreatePostAsync_CreatesPostTags_WithTagId()
+        {
+            // Arrange
+            var userId = 1;
+            var tag1 = new Tag { Id = 10, Name = "Spicy" };
+            var tag2 = new Tag { Id = 20, Name = "Healthy" };
+            var tagList = new List<Tag> { tag1, tag2 };
+
+            var postDto = new PostAddDto
+            {
+                Title = "Test Post",
+                IngredientsList = "Eggs",
+                Description = "Test desc",
+                Calories = 100,
+                TagNames = new List<string> { "Spicy", "Healthy" }
+            };
+
+            _mockTagService.Setup(s => s.ResolveOrCreateTagsAsync(postDto.TagNames))
+                .ReturnsAsync(tagList);
+
+            Post capturedPost = null;
+            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>()))
+                .Callback<Post>(p => capturedPost = p)
+                .Returns(Task.CompletedTask);
+
+            _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            await _postService.CreatePostAsync(userId, postDto);
+
+            // Assert
+            capturedPost.Should().NotBeNull();
+            capturedPost.PostTags.Count.Should().Be(2);
+            capturedPost.PostTags.Should().Contain(pt => pt.TagId == tag1.Id || (pt.Tag != null && pt.Tag.Id == tag1.Id));
+            capturedPost.PostTags.Should().Contain(pt => pt.TagId == tag2.Id || (pt.Tag != null && pt.Tag.Id == tag2.Id));
+            foreach (var postTag in capturedPost.PostTags)
+            {
+                (postTag.TagId > 0 || (postTag.Tag != null && postTag.Tag.Id > 0)).Should().BeTrue();
+                postTag.PostId.Should().Be(0); // PostId is 0 since not saved to DB
+            }
         }
 
         [Fact]
@@ -187,7 +381,7 @@ namespace FoodConnectAPI.Test.Services
             var result = await _postService.DeletePostAsync(postId);
 
             // Assert
-            Assert.True(result);
+            result.Should().BeTrue();
             _mockCommentRepository.Verify(c => c.DeleteCommentAsync(It.IsAny<int>()), Times.Exactly(2));
             _mockPostRepository.Verify(p => p.DeletePostAsync(postId), Times.Once);
         }

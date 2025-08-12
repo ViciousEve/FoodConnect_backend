@@ -73,9 +73,9 @@ namespace FoodConnectAPI.Repositories
             postToUpdate.IngredientsList = post.IngredientsList;
             postToUpdate.Description = post.Description;
             postToUpdate.Calories = post.Calories;
-            postToUpdate.Likes = post.Likes;
-            postToUpdate.CreatedAt = post.CreatedAt;
-            postToUpdate.UserId = post.UserId;
+            postToUpdate.Likes = post.Likes; // int: number of likes, not a collection
+            //postToUpdate.CreatedAt = post.CreatedAt;
+            //postToUpdate.UserId = post.UserId; // ?? this should not happen 
             return postToUpdate;
         }
 
@@ -110,17 +110,12 @@ namespace FoodConnectAPI.Repositories
             await _context.SaveChangesAsync();
         }
 
-        /// <summary>
-        /// Creates a new post in the database and returns its ID.
-        /// This method saves changes immediately as to generate the ID.
-        /// </summary>
-        /// <param name="post"></param>
-        /// <returns></returns>
-        public async Task<int> CreateAndReturnIdAsync(Post post)
-        {
-            await _context.Posts.AddAsync(post);
-            await _context.SaveChangesAsync();
-            return post.Id;
-        }
+        //Redundant method.
+        //public async Task<int> CreateAndReturnIdAsync(Post post)
+        //{
+        //    await _context.Posts.AddAsync(post);
+        //    await _context.SaveChangesAsync();
+        //    return post.Id;
+        //}
     }
 }

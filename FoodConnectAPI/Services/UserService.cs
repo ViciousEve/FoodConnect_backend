@@ -79,7 +79,7 @@ namespace FoodConnectAPI.Services
             var user = await _userRepository.GetUserByEmailAsync(userLoginDto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.PasswordHash))
             {
-                throw new UnauthorizedAccessException("Invalid credentials"); // Invalid credentials
+                return null; // Invalid credentials
             }
             
             //Create Jwt token

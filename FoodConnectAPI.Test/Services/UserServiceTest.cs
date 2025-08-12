@@ -104,8 +104,8 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync((User)null!);
 
             // Act & Assert
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                _userService.AuthenticateAsync(loginDto));
+            await FluentActions.Invoking(() => _userService.AuthenticateAsync(loginDto))
+                .Should().ThrowAsync<UnauthorizedAccessException>();
 
             _mockUserRepository.Verify(x => x.GetUserByEmailAsync(loginDto.Email), Times.Once);
         }
@@ -134,8 +134,8 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync(user);
 
             // Act & Assert
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                _userService.AuthenticateAsync(loginDto));
+            await FluentActions.Invoking(() => _userService.AuthenticateAsync(loginDto))
+                .Should().ThrowAsync<UnauthorizedAccessException>();
 
             _mockUserRepository.Verify(x => x.GetUserByEmailAsync(loginDto.Email), Times.Once);
         }
@@ -191,10 +191,10 @@ namespace FoodConnectAPI.Test.Services
             };
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-                _userService.RegisterAsync(registerDto));
+            var exception = await FluentActions.Invoking(() => _userService.RegisterAsync(registerDto))
+                .Should().ThrowAsync<ArgumentException>();
 
-            exception.Message.Should().Be("Passwords do not match");
+            exception.Which.Message.Should().Be("Passwords do not match");
         }
 
         [Fact]
@@ -220,10 +220,10 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync(existingUser);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-                _userService.RegisterAsync(registerDto));
+            var exception = await FluentActions.Invoking(() => _userService.RegisterAsync(registerDto))
+                .Should().ThrowAsync<ArgumentException>();
 
-            exception.Message.Should().Be("Email is already registered");
+            exception.Which.Message.Should().Be("Email is already registered");
         }
 
         [Fact]
@@ -334,10 +334,10 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync((User)null!);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-                _userService.DeleteAsync(email));
+            var exception = await FluentActions.Invoking(() => _userService.DeleteAsync(email))
+                .Should().ThrowAsync<KeyNotFoundException>();
 
-            exception.Message.Should().Be($"User with email {email} not found");
+            exception.Which.Message.Should().Be($"User with email {email} not found");
         }
 
         [Fact]
@@ -354,7 +354,8 @@ namespace FoodConnectAPI.Test.Services
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act & Assert
-            await Assert.ThrowsAsync<Exception>(() => _userService.DeleteAsync(email));
+            await FluentActions.Invoking(() => _userService.DeleteAsync(email))
+                .Should().ThrowAsync<Exception>();
         }
 
         [Fact]
@@ -389,10 +390,10 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync(user);
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                userServiceWithoutJwt.AuthenticateAsync(loginDto));
+            var exception = await FluentActions.Invoking(() => userServiceWithoutJwt.AuthenticateAsync(loginDto))
+                .Should().ThrowAsync<InvalidOperationException>();
 
-            exception.Message.Should().Be("JWT SecretKey is not configured. Please check appsettings.json");
+            exception.Which.Message.Should().Be("JWT SecretKey is not configured. Please check appsettings.json");
         }
     }
 }

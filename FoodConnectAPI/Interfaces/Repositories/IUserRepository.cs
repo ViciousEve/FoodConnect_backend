@@ -11,6 +11,7 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task CreateUserAsync(User user);
         Task<User> UpdateUserAsync(User user);
         Task<bool> DeleteUserAsync(int userId);
-        Task SaveChangesAsync();      
+        Task SaveChangesAsync();
+        //Task<int> CreateAndReturnIdAsync(User user); // this is redundant as EF Core can handle this automatically
     }
 }

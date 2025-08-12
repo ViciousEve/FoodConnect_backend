@@ -40,9 +40,8 @@ namespace FoodConnectAPI.Repositories
         public async Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId)
         {
             return await _context.Tags
-                .Include(t => t.PostTags)
-                .Where(t => t.PostTags.Any(pt => pt.PostId == postId))
-                .ToListAsync();
+                    .Where(t => t.PostTags.Any(pt => pt.PostId == postId))
+                    .ToListAsync();
         }
 
 
