@@ -10,6 +10,6 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<IEnumerable<PostInfoDto>> GetPostsByUserIdAsync(int userId);
         Task<Post> UpdatePostAsync(Post post);
         Task<bool> DeletePostAsync(int postId);
-        Task CreatePostAsync(int userId, PostAddDto post);
+        Task CreatePostAsync(PostFormDto postFormDto);
     }
 }

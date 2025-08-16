@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 using FluentAssertions;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.AspNetCore.Http;
 
 namespace FoodConnectAPI.Test.Services
 {
@@ -99,6 +100,7 @@ namespace FoodConnectAPI.Test.Services
                 Calories = 100,
                 CreatedAt = DateTime.UtcNow,
                 UserId = 2,
+                User = new User { Id = 1, UserName = "TestUser" },
                 PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
                 Images = new List<Media> { new Media { Url = "url1" } },
                 PostLikes = new List<Like> { new Like() },
@@ -145,6 +147,7 @@ namespace FoodConnectAPI.Test.Services
                     Calories = 100,
                     CreatedAt = DateTime.UtcNow,
                     UserId = 1,
+                    User = new User { Id = 1, UserName = "TestUser" },
                     PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
                     Images = new List<Media> { new Media { Url = "url1" } },
                     PostLikes = new List<Like> { new Like() }
@@ -220,144 +223,180 @@ namespace FoodConnectAPI.Test.Services
             result.First().TagNames.Should().Contain("Tag1");
         }
 
+        //To be reworked: create posts test goes here
+
         [Fact]
-        public async Task CreatePostAsync_CreatesPost_WithTags()
+        public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithTagsAndImages()
         {
             // Arrange
-            var userId = 1;
-            var dto = new PostAddDto
+            var dto = new PostFormDto
             {
-                Title = "Hello",
-                IngredientsList = "Eggs",
-                Description = "Test desc",
-                Calories = 200,
-                TagNames = new List<string> { "Spicy", "Healthy" }
+                UserId = 1,
+                Title = "Test Post with Images",
+                IngredientsList = "Eggs, Milk, Flour",
+                Description = "Test description with images",
+                Calories = 250,
+                TagNames = new List<string> { "Breakfast", "Healthy" },
+                ImageUrls = new List<string> { "https://example.com/image1.jpg", "https://example.com/image2.jpg" },
+                ImageFiles = new List<IFormFile>() // Empty for this test
             };
 
-            var tags = new List<Tag> { new Tag { Id = 1, Name = "spicy" }, new Tag { Id = 2, Name = "healthy" } };
+            var tags = new List<Tag> 
+            { 
+                new Tag { Id = 1, Name = "Breakfast" }, 
+                new Tag { Id = 2, Name = "Healthy" } 
+            };
 
             _mockTagService.Setup(s => s.ResolveOrCreateTagsAsync(dto.TagNames)).ReturnsAsync(tags);
             _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(userId, dto);
+            await _postService.CreatePostAsync(dto);
 
             // Assert
             _mockTagService.Verify(s => s.ResolveOrCreateTagsAsync(dto.TagNames), Times.Once);
-            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => p.Title == "Hello" && p.PostTags.Count == 2)), Times.Once);
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
+                p.Title == dto.Title && 
+                p.IngredientsList == dto.IngredientsList &&
+                p.Description == dto.Description &&
+                p.Calories == dto.Calories &&
+                p.UserId == dto.UserId &&
+                p.PostTags.Count == 2 &&
+                p.Images.Count == 2)), Times.Once);
             _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
 
         [Fact]
-        public async Task CreatePostAsync_ShouldCreatePostWithoutTags()
+        public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithoutTags()
         {
             // Arrange
-            var userId = 1;
-            var postDto = new PostAddDto
+            var dto = new PostFormDto
             {
-                Title = "No Tag Post",
+                UserId = 2,
+                Title = "Post without tags",
                 IngredientsList = "Salt, Water",
-                Description = "Simple post",
+                Description = "Simple post without tags",
                 Calories = 10,
-                TagNames = null // No tags
+                TagNames = null,
+                ImageUrls = new List<string>(),
+                ImageFiles = new List<IFormFile>()
             };
 
-            var mockPostRepository = new Mock<IPostRepository>();
-            var mockCommentRepository = new Mock<ICommentRepository>();
-            var mockUserRepository = new Mock<IUserRepository>();
-            var mockTagService = new Mock<ITagService>();
-            var mockDbContext = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
-
-            var postService = new PostService(
-                mockPostRepository.Object,
-                mockCommentRepository.Object,
-                mockDbContext.Object,
-                mockUserRepository.Object,
-                mockTagService.Object
-            );
-
-            mockPostRepository.Setup(repo => repo.CreatePostAsync(It.IsAny<Post>()))
-                .Returns(Task.CompletedTask);
-            mockPostRepository.Setup(repo => repo.SaveChangesAsync())
-                .Returns(Task.CompletedTask);
+            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
+            _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await postService.CreatePostAsync(userId, postDto);
+            await _postService.CreatePostAsync(dto);
 
             // Assert
-            mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p =>
-                p.Title == postDto.Title &&
-                p.PostTags.Count == 0
-            )), Times.Once);
-
-            mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
+                p.Title == dto.Title && 
+                p.PostTags.Count == 0 &&
+                p.Images.Count == 0)), Times.Once);
+            _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
 
         [Fact]
-        public async Task CreatePostAsync_ShouldThrowArgumentNullException_WhenDtoIsNull()
+        public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithoutImages()
         {
             // Arrange
-            var mockPostRepository = new Mock<IPostRepository>();
-            var mockCommentRepository = new Mock<ICommentRepository>();
-            var mockUserRepository = new Mock<IUserRepository>();
-            var mockTagService = new Mock<ITagService>();
-            var mockDbContext = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
+            var dto = new PostFormDto
+            {
+                UserId = 3,
+                Title = "Post without images",
+                IngredientsList = "Rice, Vegetables",
+                Description = "Post with no images",
+                Calories = 180,
+                TagNames = new List<string> { "Vegetarian" },
+                ImageUrls = new List<string>(),
+                ImageFiles = new List<IFormFile>()
+            };
 
-            var postService = new PostService(
-                mockPostRepository.Object,
-                mockCommentRepository.Object,
-                mockDbContext.Object,
-                mockUserRepository.Object,
-                mockTagService.Object
-            );
+            var tags = new List<Tag> { new Tag { Id = 3, Name = "Vegetarian" } };
 
+            _mockTagService.Setup(s => s.ResolveOrCreateTagsAsync(dto.TagNames)).ReturnsAsync(tags);
+            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
+            _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            await _postService.CreatePostAsync(dto);
+
+            // Assert
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
+                p.Title == dto.Title && 
+                p.Images.Count == 0)), Times.Once);
+            _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreatePostAsync_WithPostFormDto_ShouldThrowArgumentNullException_WhenDtoIsNull()
+        {
             // Act & Assert
-            await FluentActions.Invoking(() => postService.CreatePostAsync(1, null))
+            await FluentActions.Invoking(() => _postService.CreatePostAsync((PostFormDto)null))
                 .Should().ThrowAsync<ArgumentNullException>();
         }
 
         [Fact]
-        public async Task CreatePostAsync_CreatesPostTags_WithTagId()
+        public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithOnlyImageUrls()
         {
             // Arrange
-            var userId = 1;
-            var tag1 = new Tag { Id = 10, Name = "Spicy" };
-            var tag2 = new Tag { Id = 20, Name = "Healthy" };
-            var tagList = new List<Tag> { tag1, tag2 };
-
-            var postDto = new PostAddDto
+            var dto = new PostFormDto
             {
-                Title = "Test Post",
-                IngredientsList = "Eggs",
-                Description = "Test desc",
-                Calories = 100,
-                TagNames = new List<string> { "Spicy", "Healthy" }
+                UserId = 4,
+                Title = "Post with image URLs only",
+                IngredientsList = "Pasta, Sauce",
+                Description = "Post with external image URLs",
+                Calories = 320,
+                TagNames = new List<string>(),
+                ImageUrls = new List<string> { "https://example.com/pasta.jpg", "https://example.com/sauce.jpg" },
+                ImageFiles = new List<IFormFile>()
             };
 
-            _mockTagService.Setup(s => s.ResolveOrCreateTagsAsync(postDto.TagNames))
-                .ReturnsAsync(tagList);
-
-            Post capturedPost = null;
-            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>()))
-                .Callback<Post>(p => capturedPost = p)
-                .Returns(Task.CompletedTask);
-
+            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(userId, postDto);
+            await _postService.CreatePostAsync(dto);
 
             // Assert
-            capturedPost.Should().NotBeNull();
-            capturedPost.PostTags.Count.Should().Be(2);
-            capturedPost.PostTags.Should().Contain(pt => pt.TagId == tag1.Id || (pt.Tag != null && pt.Tag.Id == tag1.Id));
-            capturedPost.PostTags.Should().Contain(pt => pt.TagId == tag2.Id || (pt.Tag != null && pt.Tag.Id == tag2.Id));
-            foreach (var postTag in capturedPost.PostTags)
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
+                p.Title == dto.Title && 
+                p.Images.Count == 2 &&
+                p.Images.Any(i => i.Url == "https://example.com/pasta.jpg") &&
+                p.Images.Any(i => i.Url == "https://example.com/sauce.jpg"))), Times.Once);
+            _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithEmptyLists()
+        {
+            // Arrange
+            var dto = new PostFormDto
             {
-                (postTag.TagId > 0 || (postTag.Tag != null && postTag.Tag.Id > 0)).Should().BeTrue();
-                postTag.PostId.Should().Be(0); // PostId is 0 since not saved to DB
-            }
+                UserId = 5,
+                Title = "Post with empty lists",
+                IngredientsList = "Basic ingredients",
+                Description = "Post with empty tag and image lists",
+                Calories = null,
+                TagNames = new List<string>(),
+                ImageUrls = new List<string>(),
+                ImageFiles = new List<IFormFile>()
+            };
+
+            _mockPostRepository.Setup(r => r.CreatePostAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
+            _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            await _postService.CreatePostAsync(dto);
+
+            // Assert
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
+                p.Title == dto.Title && 
+                p.PostTags.Count == 0 &&
+                p.Images.Count == 0 &&
+                p.Calories == 0)), Times.Once);
+            _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
 
         [Fact]

@@ -136,41 +136,70 @@ namespace FoodConnectAPI.Services
             }
         }
 
-        public async Task CreatePostAsync(int userId, PostAddDto postAddDto)
+        public async Task CreatePostAsync(PostFormDto dto)
         {
-            if (postAddDto == null)
-                throw new ArgumentNullException(nameof(postAddDto));
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+            var savedImageUrls = new List<string>();
+
+            // Save uploaded files
+            if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Uploads");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var file in dto.ImageFiles)
+                {
+                    if (file.Length > 0)
+                    {
+                        var ext = Path.GetExtension(file.FileName);
+                        var uniqueFileName = $"{Guid.NewGuid()}{ext}";
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                        savedImageUrls.Add($"/Uploads/{uniqueFileName}");
+                    }
+                }
+            }
+
+            // Add provided URLs
+            if (dto.ImageUrls?.Any() == true)
+            {
+                savedImageUrls.AddRange(dto.ImageUrls.Where(url => !string.IsNullOrWhiteSpace(url)));
+            }
 
             var post = new Post
             {
-                Title = postAddDto.Title,
-                IngredientsList = postAddDto.IngredientsList,
-                Description = postAddDto.Description,
-                Calories = postAddDto.Calories ?? 0,
-                UserId = userId,
+                Title = dto.Title,
+                IngredientsList = dto.IngredientsList,
+                Description = dto.Description,
+                Calories = dto.Calories ?? 0,
+                UserId = dto.UserId,
                 CreatedAt = DateTime.UtcNow,
-                PostTags = new List<PostTag>()
+                PostTags = new List<PostTag>(),
+                Images = new List<Media>()
             };
 
-            // Add tags if provided
-            if (postAddDto.TagNames?.Any() == true)
+            // Add tags
+            if (dto.TagNames?.Any() == true)
             {
-                var tags = await _tagService.ResolveOrCreateTagsAsync(postAddDto.TagNames);
+                var tags = await _tagService.ResolveOrCreateTagsAsync(dto.TagNames);
                 foreach (var tag in tags)
                 {
                     post.PostTags.Add(new PostTag { Tag = tag });
                 }
             }
 
-            // Add images if provided (Todo later)
-            //if (postAddDto.ImageUrls?.Any() == true)
-            //{
-            //    post.Images = new List<Media>();
-            //    foreach (var image in postAddDto.ImageUrls)
-            //    {
-            //        post.Images.Add(new Media { Url = image.Url, Type = image.Type });
-            //    }
-            //}
+            // Add images
+            foreach (var imageUrl in savedImageUrls)
+            {
+                post.Images.Add(new Media { Url = imageUrl });
+            }
+
             await _postRepository.CreatePostAsync(post);
             await _postRepository.SaveChangesAsync();
         }

@@ -9,9 +9,11 @@ namespace FoodConnectAPI.Controllers
     public class PostController : Controller
     {
         private readonly IPostService _postService;
-        public PostController(IPostService postService)
+        private readonly ICommentService _commentService;
+        public PostController(IPostService postService, ICommentService commentService)
         {
             _postService = postService;
+            _commentService = commentService;
         }
 
         [HttpGet("posts")]
@@ -28,17 +30,37 @@ namespace FoodConnectAPI.Controllers
             }
         }
 
+
         [HttpPost("create")]
-        public async Task<IActionResult> CreatePost(int userId, [FromBody] PostAddDto postDto)
+        public async Task<IActionResult> CreatePost([FromForm] PostFormDto postFormDto)
         {
-            if (postDto == null)
+            if (string.IsNullOrWhiteSpace(postFormDto.Title) || string.IsNullOrWhiteSpace(postFormDto.IngredientsList) || string.IsNullOrWhiteSpace(postFormDto.Description))
             {
-                return BadRequest(new { error = "Post data is required." });
+                return BadRequest(new { error = "Title, ingredients, and description are required." });
             }
             try
             {
-                await _postService.CreatePostAsync(userId, postDto);
+               
+                await _postService.CreatePostAsync(postFormDto);
                 return Ok(new { message = "Post created successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
+            }
+        }
+
+        [HttpGet("{postId}/comments")]
+        public async Task<IActionResult> GetCommentsByPostId(int postId)
+        {
+            if (postId <= 0)
+            {
+                return BadRequest(new { error = "Invalid post ID." });
+            }
+            try
+            {
+                var comments = await _commentService.GetCommentsByPostIdAsync(postId);
+                return Ok(comments);
             }
             catch (Exception ex)
             {
