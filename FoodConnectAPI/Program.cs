@@ -69,6 +69,9 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 
+// Serve static files from wwwroot folder
+app.UseStaticFiles();
+
 // Use CORS policy
 app.UseCors("AllowReactApp");
 

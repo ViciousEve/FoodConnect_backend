@@ -14,6 +14,12 @@ namespace FoodConnectAPI.Services
         private readonly IUserRepository _userRepository;
         private readonly AppDbContext _dbContext;
         private readonly ITagService _tagService;
+        const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+        // Allowed extensions (lowercase)
+        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".webp"
+        };
 
         public PostService(IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IUserRepository userRepository, ITagService tagService)
         {
@@ -154,7 +160,23 @@ namespace FoodConnectAPI.Services
                 {
                     if (file.Length > 0)
                     {
-                        var ext = Path.GetExtension(file.FileName);
+                        // Validate file size
+                        if (file.Length > MaxFileSize)
+                            throw new InvalidOperationException($"File {file.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
+
+                        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                        // Validate file extension
+                        if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
+                        {
+                            throw new InvalidOperationException($"File {file.FileName} has an invalid or unsupported extension.");
+                        }
+                        //Vilidate MIME type for images
+                        if (!file.ContentType.StartsWith("image/"))
+                        {
+                            throw new InvalidOperationException($"File {file.FileName} is not a valid image.");
+                        }
+
                         var uniqueFileName = $"{Guid.NewGuid()}{ext}";
                         var filePath = Path.Combine(uploadsFolder, uniqueFileName);
                         using (var stream = new FileStream(filePath, FileMode.Create))
