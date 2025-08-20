@@ -1,9 +1,11 @@
+using System.Threading.RateLimiting;
 using FoodConnectAPI.Data;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Repositories;
 using FoodConnectAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +23,18 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
+    });
+});
+
+// Add Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", builder =>
+    {
+        builder.Window = TimeSpan.FromMinutes(1);
+        builder.PermitLimit = 100; // Allow 100 requests per minute
+        builder.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        builder.QueueLimit = 10; // Allow up to 10 requests in the queue
     });
 });
 
@@ -74,6 +88,9 @@ app.UseStaticFiles();
 
 // Use CORS policy
 app.UseCors("AllowReactApp");
+
+// Use Rate Limiting
+app.UseRateLimiter();
 
 app.UseAuthentication();
 
