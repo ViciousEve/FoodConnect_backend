@@ -1,16 +1,21 @@
 ﻿using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Models;
 
 namespace FoodConnectAPI.Services
 {
     public class CommentService : ICommentService
     {
         private readonly ICommentRepository _commentRepository;
+        private readonly IPostRepository _postRepository;
+        private readonly IUserRepository _userRepository;
 
-        public CommentService(ICommentRepository commentRepository)
+        public CommentService(ICommentRepository commentRepository, IPostRepository postRepository, IUserRepository userRepository)
         {
             _commentRepository = commentRepository;
+            _postRepository = postRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<Comment> GetCommentByIdAsync(int commentId)
@@ -18,24 +23,69 @@ namespace FoodConnectAPI.Services
             return await _commentRepository.GetCommentByIdAsync(commentId);
         }
 
-        public async Task<IEnumerable<Comment>> GetAllCommentsAsync()
+        public async Task<IEnumerable<CommentInfoDto>> GetAllCommentsAsync()
         {
-            return await _commentRepository.GetAllCommentsAsync();
+            var comments = await _commentRepository.GetAllCommentsAsync();
+
+            if (comments == null || !comments.Any())
+                return new List<CommentInfoDto>();
+            // Map List<Comment> to List<CommentInfoDto>
+            return comments.Select(comment => new CommentInfoDto
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                //commenter data
+                UserId = comment.UserId,
+                UserName = comment.User.UserName,
+                ProfilePictureUrl = comment.User?.ProfilePictureUrl,
+            });
         }
 
-        public async Task<IEnumerable<Comment>> GetCommentsByPostIdAsync(int postId)
+        public async Task<IEnumerable<CommentInfoDto>> GetCommentsByPostIdAsync(int postId)
         {
-            return await _commentRepository.GetCommentsByPostIdAsync(postId);
+            var comments = await _commentRepository.GetCommentsByPostIdAsync(postId);
+            if (comments == null || !comments.Any())
+                return new List<CommentInfoDto>();
+            // Map List<Comment> to List<CommentInfoDto>
+            return comments.Select(comment => new CommentInfoDto
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                //commenter data
+                UserId = comment.UserId,
+                UserName = comment.User.UserName,
+                ProfilePictureUrl = comment.User?.ProfilePictureUrl,
+            });
         }
 
-        public async Task<IEnumerable<Comment>> GetCommentsByUserIdAsync(int userId)
+        public async Task<IEnumerable<CommentInfoDto>> GetCommentsByUserIdAsync(int userId)
         {
-            return await _commentRepository.GetCommentsByUserIdAsync(userId);
+            var comments = await _commentRepository.GetCommentsByUserIdAsync(userId);
+            if (comments == null || !comments.Any())
+                return new List<CommentInfoDto>();
+            // Map List<Comment> to List<CommentInfoDto>
+            return comments.Select(comment => new CommentInfoDto
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                //commenter data
+                UserId = comment.UserId,
+                UserName = comment.User.UserName,
+                ProfilePictureUrl = comment.User?.ProfilePictureUrl,
+            });
         }
 
-        public async Task<Comment> UpdateCommentAsync(Comment comment)
+        public async Task<Comment> UpdateCommentAsync(int Id, CommentUpdateDto comment)
         {
-            var updated = await _commentRepository.UpdateCommentAsync(comment);
+            var existingComment = await _commentRepository.GetCommentByIdAsync(Id);
+            if (existingComment == null)
+                throw new ArgumentException("Comment not found", nameof(Id));
+            // Update the existing comment with new values
+            existingComment.Content = comment.Content;
+            var updated = await _commentRepository.UpdateCommentAsync(existingComment);
             await _commentRepository.SaveChangesAsync();
             return updated;
         }
@@ -47,9 +97,49 @@ namespace FoodConnectAPI.Services
             return deleted;
         }
 
-        public async Task CreateCommentAsync(Comment comment)
+        public async Task CreateCommentAsync(CommentAddDto comment)
         {
-            await _commentRepository.CreateCommentAsync(comment);
+            if(comment == null)
+            {
+                throw new ArgumentNullException(nameof(comment), "Comment cannot be null");
+            }
+            //Validate UserId
+            if (comment.UserId <= 0 )
+            {
+                throw new ArgumentException("Invalid UserId", nameof(comment.UserId));
+            }
+            var user = await _userRepository.GetUserByIdAsync(comment.UserId);
+            if (user == null)
+            {
+                throw new ArgumentException("User not found", nameof(comment.UserId));
+            }
+
+            // Validate PostId
+            if (comment.PostId <= 0)
+            {
+                throw new ArgumentException("Invalid PostId", nameof(comment.PostId));
+            }
+            var post = await _postRepository.GetPostByIdAsync(comment.PostId);
+            if (post == null)
+            {
+                throw new ArgumentException("Post not found", nameof(comment.PostId));
+            }
+
+            //Validate Content
+            if (string.IsNullOrWhiteSpace(comment.Content))
+            {
+                throw new ArgumentException("Content cannot be empty", nameof(comment.Content));
+            }
+
+            // Create a new comment entity
+            var newComment = new Comment
+            {
+                Content = comment.Content,
+                UserId = comment.UserId,
+                PostId = comment.PostId,
+                CreatedAt = DateTime.UtcNow // Set the creation time to now
+            };
+            await _commentRepository.CreateCommentAsync(newComment);
             await _commentRepository.SaveChangesAsync();
         }
     }
