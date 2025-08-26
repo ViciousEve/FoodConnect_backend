@@ -39,10 +39,10 @@ namespace FoodConnectAPI.Test.Services
             // Arrange
             var tagNames = new List<string> { "Spicy", "Sweet" };
             var existingTags = new List<Tag>
-    {
-        new Tag { Id = 1, Name = "spicy" },
-        new Tag { Id = 2, Name = "sweet" }
-    };
+            {
+                new Tag { Id = 1, Name = "spicy" },
+                new Tag { Id = 2, Name = "sweet" }
+            };
 
             _mockTagRepository
                 .Setup(repo => repo.GetTagsByNamesAsync(It.Is<List<string>>(l =>

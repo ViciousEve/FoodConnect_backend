@@ -1,10 +1,10 @@
 ﻿using FoodConnectAPI.Entities;
+using FoodConnectAPI.Models;
 
 namespace FoodConnectAPI.Interfaces.Services
 {
     public interface ITagService
     {
-        //Todo: create methods 
         Task<List<Tag>> ResolveOrCreateTagsAsync(List<string> tagNames);
         //Delete a tag if there are no posts associated with it
         Task<bool> DeleteAsync(int tagId);
@@ -12,7 +12,7 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<Tag> GetTagByIdAsync(int tagId);
         Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId);
         Task<Tag> GetTagByNameAsync(string name);
-        Task<IEnumerable<Tag>> GetAllTagsAsync();
+        Task<IEnumerable<TagInfoDto>> GetAllTagsAsync();
 
 
     }

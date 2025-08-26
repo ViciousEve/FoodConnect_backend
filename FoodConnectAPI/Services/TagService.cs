@@ -2,6 +2,7 @@
 using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Models;
 
 namespace FoodConnectAPI.Services
 {
@@ -45,9 +46,16 @@ namespace FoodConnectAPI.Services
             return true;
         }
 
-        public async Task<IEnumerable<Tag>> GetAllTagsAsync()
+        public async Task<IEnumerable<TagInfoDto>> GetAllTagsAsync()
         {
-            return await _tagRepository.GetAllTagsAsync();
+            //can be improved with caching or pagination for large datasets and not linking Posts to Tags but too lazy...
+            var tags =  await _tagRepository.GetAllTagsAsync();
+            //map to Dtos
+            return tags.Select(tag => new TagInfoDto
+            {
+                Id = tag.Id,
+                Name = tag.Name,
+            }).ToList();
         }
 
         public async Task<Tag> GetTagByIdAsync(int tagId)
