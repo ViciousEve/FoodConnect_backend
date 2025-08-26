@@ -10,6 +10,8 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<IEnumerable<Comment>> GetCommentsByUserIdAsync(int userId);
         Task<Comment> UpdateCommentAsync(Comment comment);
         Task<bool> DeleteCommentAsync(int commentId);
+        Task<bool> DeleteCommentsByPostIdAsync(int postId);
+        Task<bool> DeleteCommentsByUserIdAsync(int userId);
         Task CreateCommentAsync(Comment comment);
         Task SaveChangesAsync();
     }

@@ -12,6 +12,7 @@ namespace FoodConnectAPI.Services
         private readonly IPostRepository _postRepository;
         private readonly ICommentRepository _commentRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ILikeRepository _likeRepository;
         private readonly AppDbContext _dbContext;
         private readonly ITagService _tagService;
         const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
@@ -21,16 +22,17 @@ namespace FoodConnectAPI.Services
             ".jpg", ".jpeg", ".png", ".gif", ".webp"
         };
 
-        public PostService(IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IUserRepository userRepository, ITagService tagService)
+        public PostService(IPostRepository postRepository, ICommentRepository commentRepository,ILikeRepository likeRepository, IUserRepository userRepository, ITagService tagService, AppDbContext dbContext)
         {
             _postRepository = postRepository;
             _commentRepository = commentRepository;
             _dbContext = dbContext;
             _userRepository = userRepository;
             _tagService = tagService;
+            _likeRepository = likeRepository;
         }
 
-        public async Task<PostInfoDto> GetPostByIdAsync(int postId)
+        public async Task<PostInfoDto> GetPostByIdAsync(int postId, int? currentUserId = null)
         {
             if(postId <= 0)
                 throw new ArgumentException("Invalid post ID", nameof(postId));
@@ -50,12 +52,13 @@ namespace FoodConnectAPI.Services
                 UserId = post.UserId,
                 TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
                 ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
-                Likes = post.PostLikes.Count
+                Likes = post.PostLikes.Count,
+                IsLikedByCurrentUser = currentUserId.HasValue && post.PostLikes.Any(l => l.UserId == currentUserId.Value)
             };
             return postInfoDto;
         }
 
-        public async Task<IEnumerable<PostInfoDto>> GetAllPostsAsync()
+        public async Task<IEnumerable<PostInfoDto>> GetAllPostsAsync(int? currentUserId = null)
         {
             var posts = await _postRepository.GetAllPostsAsync();
             if (posts == null || !posts.Any())
@@ -73,7 +76,8 @@ namespace FoodConnectAPI.Services
                 TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
                 ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
                 Likes = post.PostLikes.Count,
-                UserName = post.User.UserName
+                UserName = post.User.UserName,
+                IsLikedByCurrentUser = currentUserId.HasValue && post.PostLikes.Any(l => l.UserId == currentUserId.Value)
 
             }).ToList();
             //Sort by CreatedAt newest first
@@ -81,7 +85,7 @@ namespace FoodConnectAPI.Services
             return postDtos;
         }
 
-        public async Task<IEnumerable<PostInfoDto>> GetPostsByUserIdAsync(int userId)
+        public async Task<IEnumerable<PostInfoDto>> GetPostsByUserIdAsync(int userId, int? currentUserId = null)
         {
             if (userId <= 0)
                 throw new ArgumentException("Invalid user ID", nameof(userId));
@@ -102,7 +106,8 @@ namespace FoodConnectAPI.Services
                 UserId = post.UserId,
                 TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
                 ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
-                Likes = post.Likes
+                Likes = post.Likes,
+                IsLikedByCurrentUser = currentUserId.HasValue && post.PostLikes.Any(l => l.UserId == currentUserId.Value)
             }).ToList();
             return postDtos;
         }
@@ -121,12 +126,11 @@ namespace FoodConnectAPI.Services
                 try
                 {
                     // Delete all comments related to this post first
-                    var comments = await _commentRepository.GetCommentsByPostIdAsync(postId);
-                    foreach (var comment in comments)
-                    {
-                        await _commentRepository.DeleteCommentAsync(comment.Id);
-                    }
+                    await _commentRepository.DeleteCommentsByPostIdAsync(postId);
                     await _commentRepository.SaveChangesAsync();
+                    // Delete all likes related to this post
+                    await _likeRepository.DeleteLikeByPostIdAsync(postId);
+                    await _likeRepository.SaveChangesAsync();
 
                     var deleted = await _postRepository.DeletePostAsync(postId);
                     await _postRepository.SaveChangesAsync();

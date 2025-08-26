@@ -26,6 +26,7 @@ namespace FoodConnectAPI.Test.Services
         private readonly Mock<ICommentRepository> _mockCommentRepository;
         private readonly Mock<IUserRepository> _mockUserRepository;
         private readonly Mock<ITagService> _mockTagService;
+        private readonly Mock<ILikeRepository> _mockLikeRepository;
         private readonly Mock<AppDbContext> _mockDbContext;
         private readonly PostService _postService;
 
@@ -35,6 +36,7 @@ namespace FoodConnectAPI.Test.Services
             _mockCommentRepository = new Mock<ICommentRepository>();
             _mockUserRepository = new Mock<IUserRepository>();
             _mockTagService = new Mock<ITagService>();
+            _mockLikeRepository = new Mock<ILikeRepository>();
 
             // Create a real in-memory database for testing
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -51,9 +53,10 @@ namespace FoodConnectAPI.Test.Services
             _postService = new PostService(
                 _mockPostRepository.Object,
                 _mockCommentRepository.Object,
-                _mockDbContext.Object,
+                _mockLikeRepository.Object,
                 _mockUserRepository.Object,
-                _mockTagService.Object
+                _mockTagService.Object,
+                _mockDbContext.Object
             );
         }
 
@@ -150,18 +153,49 @@ namespace FoodConnectAPI.Test.Services
                     User = new User { Id = 1, UserName = "TestUser" },
                     PostTags = new List<PostTag> { new PostTag { Tag = new Tag { Name = "Tag1" } } },
                     Images = new List<Media> { new Media { Url = "url1" } },
-                    PostLikes = new List<Like> { new Like() }
+                    PostLikes = new List<Like> { new Like { UserId = 5, PostId = 1 } }
                 }
             };
             _mockPostRepository.Setup(r => r.GetAllPostsAsync()).ReturnsAsync(posts);
 
             // Act
-            var result = await _postService.GetAllPostsAsync();
+            var result = await _postService.GetAllPostsAsync(5);
 
             // Assert
             result.Should().HaveCount(1);
             result.First().Title.Should().Be("Post 1");
             result.First().TagNames.Should().Contain("Tag1");
+            result.First().IsLikedByCurrentUser.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task GetPostByIdAsync_ShouldSetIsLikedByCurrentUser_WhenUserLiked()
+        {
+            // Arrange
+            var postId = 2;
+            var currentUserId = 7;
+            var post = new Post
+            {
+                Id = postId,
+                Title = "Post 2",
+                IngredientsList = "Milk",
+                Description = "Desc2",
+                Calories = 50,
+                CreatedAt = DateTime.UtcNow,
+                UserId = 9,
+                User = new User { Id = 9, UserName = "Owner" },
+                PostTags = new List<PostTag>(),
+                Images = new List<Media>(),
+                PostLikes = new List<Like> { new Like { UserId = currentUserId, PostId = postId } }
+            };
+            _mockPostRepository.Setup(r => r.GetPostByIdAsync(postId)).ReturnsAsync(post);
+
+            // Act
+            var result = await _postService.GetPostByIdAsync(postId, currentUserId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.IsLikedByCurrentUser.Should().BeTrue();
         }
 
         [Fact]
@@ -411,7 +445,7 @@ namespace FoodConnectAPI.Test.Services
             _mockDbContext.Setup(c => c.Database).Returns(dbFacadeMock.Object);
 
             _mockCommentRepository.Setup(c => c.GetCommentsByPostIdAsync(postId)).ReturnsAsync(comments);
-            _mockCommentRepository.Setup(c => c.DeleteCommentAsync(It.IsAny<int>())).Returns(Task.FromResult(true));
+            _mockCommentRepository.Setup(c => c.DeleteCommentsByPostIdAsync(postId)).ReturnsAsync(true);
             _mockCommentRepository.Setup(c => c.SaveChangesAsync()).Returns(Task.CompletedTask);
             _mockPostRepository.Setup(p => p.DeletePostAsync(postId)).ReturnsAsync(true);
             _mockPostRepository.Setup(p => p.SaveChangesAsync()).Returns(Task.CompletedTask);
@@ -421,7 +455,7 @@ namespace FoodConnectAPI.Test.Services
 
             // Assert
             result.Should().BeTrue();
-            _mockCommentRepository.Verify(c => c.DeleteCommentAsync(It.IsAny<int>()), Times.Exactly(2));
+            _mockCommentRepository.Verify(c => c.DeleteCommentsByPostIdAsync(postId), Times.Once);
             _mockPostRepository.Verify(p => p.DeletePostAsync(postId), Times.Once);
         }
     }

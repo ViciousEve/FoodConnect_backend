@@ -102,5 +102,26 @@ namespace FoodConnectAPI.Repositories
             await _context.SaveChangesAsync();
             return comment.Id;
         }
+
+        public async Task<bool> DeleteCommentsByPostIdAsync(int postId)
+        {
+            var comments = await _context.Comments.Where(c => c.PostId == postId).ToListAsync();
+            if (!comments.Any())
+            {
+                return false;
+            }
+            _context.Comments.RemoveRange(comments);
+            return true;
+        }
+        public async Task<bool> DeleteCommentsByUserIdAsync(int userId)
+        {
+            var comments = await _context.Comments.Where(c => c.UserId == userId).ToListAsync();
+            if (!comments.Any())
+            {
+                return false;
+            }
+            _context.Comments.RemoveRange(comments);
+            return true;
+        }
     }
 }
