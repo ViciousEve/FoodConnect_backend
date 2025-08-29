@@ -45,7 +45,7 @@ namespace FoodConnectAPI.Controllers
         //    return Ok(new { message = "Comment added successfully." });
         //}
 
-        [HttpPatch("/{commentId}")]
+        [HttpPatch("{commentId}")]
         public async Task<IActionResult> UpdateComment(int commentId, [FromBody] CommentUpdateDto comment)
         {
             if (commentId <= 0 || !ModelState.IsValid)
