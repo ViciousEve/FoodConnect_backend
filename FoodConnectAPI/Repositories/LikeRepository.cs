@@ -120,5 +120,13 @@ namespace FoodConnectAPI.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<bool> DeleteLikeByPostIdAsync(int postId)
+        {
+            var likes = await _context.Likes.Where(l => l.PostId == postId).ToListAsync();
+            if (!likes.Any()) return false;
+            _context.Likes.RemoveRange(likes);
+            return true;
+        }
     }
 } 

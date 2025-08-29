@@ -60,7 +60,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ITagService, TagService>();
-//builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<ILikeService, LikeService>();
 //builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
