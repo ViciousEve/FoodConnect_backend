@@ -9,9 +9,5 @@ namespace FoodConnectAPI.Models
         [MaxLength(500)]
         public string Content { get; set; } = string.Empty;
 
-        [Required]
-        public int UserId { get; set; }
-        [Required]
-        public int PostId { get; set; }
     }
 }

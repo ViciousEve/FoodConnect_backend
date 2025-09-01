@@ -19,39 +19,36 @@ namespace FoodConnectAPI.Repositories
         public async Task<Post> GetPostByIdAsync(int postId)
         {
             return await _context.Posts
+                .AsNoTracking()
                 .Include(p => p.User)
-                .Include(p => p.Comments)
                 .Include(p => p.Images)
                 .Include(p => p.PostLikes)
                 .Include(p => p.PostTags)
                     .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Reports)
                 .FirstOrDefaultAsync(p => p.Id == postId);
         }
 
         public async Task<IEnumerable<Post>> GetAllPostsAsync()
         {
             return await _context.Posts
+                .AsNoTracking()
                 .Include(p => p.User)
-                .Include(p => p.Comments)
                 .Include(p => p.Images)
                 .Include(p => p.PostLikes)
                 .Include(p => p.PostTags)
                     .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Reports)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Post>> GetPostsByUserIdAsync(int userId)
         {
             return await _context.Posts
+                .AsNoTracking()
                 .Include(p => p.User)
-                .Include(p => p.Comments)
                 .Include(p => p.Images)
                 .Include(p => p.PostLikes)
                 .Include(p => p.PostTags)
                     .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Reports)
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
         }

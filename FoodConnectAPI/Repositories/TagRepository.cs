@@ -80,6 +80,13 @@ namespace FoodConnectAPI.Repositories
             return true;
         }
 
+        public async Task<int> DeleteAllOrphanTagsAsync()
+        {
+            return await _context.Tags
+                .Where(t => !_context.PostTags.Any(pt => pt.TagId == t.Id))
+                .ExecuteDeleteAsync();
+        }
+
         public async Task<bool> TagExistsAsync(string name)
         {
             return await _context.Tags.AnyAsync(t => t.Name.ToLower() == name.ToLower());

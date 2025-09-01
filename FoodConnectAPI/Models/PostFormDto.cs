@@ -4,7 +4,6 @@ namespace FoodConnectAPI.Models
 {
     public class PostFormDto
     {
-        public int UserId { get; set; }
         public string Title { get; set; }
         public string IngredientsList { get; set; }
         public string Description { get; set; }
