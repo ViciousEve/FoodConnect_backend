@@ -91,7 +91,7 @@ namespace FoodConnectAPI.Test.Services
         }
 
         [Fact]
-        public async Task AuthenticateAsync_WithInvalidEmail_ShouldThrowUnauthorizedAccessException()
+        public async Task AuthenticateAsync_WithInvalidEmail_ShouldReturnNull()
         {
             // Arrange
             var loginDto = new UserLoginDto
@@ -103,15 +103,17 @@ namespace FoodConnectAPI.Test.Services
             _mockUserRepository.Setup(x => x.GetUserByEmailAsync(loginDto.Email))
                 .ReturnsAsync((User)null!);
 
-            // Act & Assert
-            await FluentActions.Invoking(() => _userService.AuthenticateAsync(loginDto))
-                .Should().ThrowAsync<UnauthorizedAccessException>();
+            // Act
+            var result = await _userService.AuthenticateAsync(loginDto);
+
+            // Assert
+            result.Should().BeNull();
 
             _mockUserRepository.Verify(x => x.GetUserByEmailAsync(loginDto.Email), Times.Once);
         }
 
         [Fact]
-        public async Task AuthenticateAsync_WithInvalidPassword_ShouldThrowUnauthorizedAccessException()
+        public async Task AuthenticateAsync_WithInvalidPassword_ShouldReturnNull()
         {
             // Arrange
             var loginDto = new UserLoginDto
@@ -133,9 +135,11 @@ namespace FoodConnectAPI.Test.Services
             _mockUserRepository.Setup(x => x.GetUserByEmailAsync(loginDto.Email))
                 .ReturnsAsync(user);
 
-            // Act & Assert
-            await FluentActions.Invoking(() => _userService.AuthenticateAsync(loginDto))
-                .Should().ThrowAsync<UnauthorizedAccessException>();
+            // Act
+            var result = await _userService.AuthenticateAsync(loginDto);
+
+            // Assert
+            result.Should().BeNull();
 
             _mockUserRepository.Verify(x => x.GetUserByEmailAsync(loginDto.Email), Times.Once);
         }

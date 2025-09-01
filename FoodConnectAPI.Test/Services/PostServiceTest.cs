@@ -263,9 +263,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithTagsAndImages()
         {
             // Arrange
+            var userId = 1;
             var dto = new PostFormDto
             {
-                UserId = 1,
                 Title = "Test Post with Images",
                 IngredientsList = "Eggs, Milk, Flour",
                 Description = "Test description with images",
@@ -286,7 +286,7 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(dto);
+            await _postService.CreatePostAsync(userId, dto);
 
             // Assert
             _mockTagService.Verify(s => s.ResolveOrCreateTagsAsync(dto.TagNames), Times.Once);
@@ -295,7 +295,7 @@ namespace FoodConnectAPI.Test.Services
                 p.IngredientsList == dto.IngredientsList &&
                 p.Description == dto.Description &&
                 p.Calories == dto.Calories &&
-                p.UserId == dto.UserId &&
+                p.UserId == userId &&
                 p.PostTags.Count == 2 &&
                 p.Images.Count == 2)), Times.Once);
             _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
@@ -305,9 +305,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithoutTags()
         {
             // Arrange
+            var userId = 2;
             var dto = new PostFormDto
             {
-                UserId = 2,
                 Title = "Post without tags",
                 IngredientsList = "Salt, Water",
                 Description = "Simple post without tags",
@@ -321,11 +321,12 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(dto);
+            await _postService.CreatePostAsync(userId, dto);
 
             // Assert
-            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
-                p.Title == dto.Title && 
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p =>
+                p.Title == dto.Title &&
+                p.UserId == userId &&
                 p.PostTags.Count == 0 &&
                 p.Images.Count == 0)), Times.Once);
             _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
@@ -335,9 +336,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithoutImages()
         {
             // Arrange
+            var userId = 3;
             var dto = new PostFormDto
             {
-                UserId = 3,
                 Title = "Post without images",
                 IngredientsList = "Rice, Vegetables",
                 Description = "Post with no images",
@@ -354,11 +355,12 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(dto);
+            await _postService.CreatePostAsync(userId, dto);
 
             // Assert
-            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
-                p.Title == dto.Title && 
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p =>
+                p.Title == dto.Title &&
+                p.UserId == userId &&
                 p.Images.Count == 0)), Times.Once);
             _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
@@ -366,8 +368,11 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreatePostAsync_WithPostFormDto_ShouldThrowArgumentNullException_WhenDtoIsNull()
         {
+            // Arrange
+            var userId = 1;
+
             // Act & Assert
-            await FluentActions.Invoking(() => _postService.CreatePostAsync((PostFormDto)null))
+            await FluentActions.Invoking(() => _postService.CreatePostAsync(userId, (PostFormDto)null))
                 .Should().ThrowAsync<ArgumentNullException>();
         }
 
@@ -375,9 +380,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithOnlyImageUrls()
         {
             // Arrange
+            var userId = 4;
             var dto = new PostFormDto
             {
-                UserId = 4,
                 Title = "Post with image URLs only",
                 IngredientsList = "Pasta, Sauce",
                 Description = "Post with external image URLs",
@@ -391,11 +396,12 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(dto);
+            await _postService.CreatePostAsync(userId, dto);
 
             // Assert
-            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
-                p.Title == dto.Title && 
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p =>
+                p.Title == dto.Title &&
+                p.UserId == userId &&
                 p.Images.Count == 2 &&
                 p.Images.Any(i => i.Url == "https://example.com/pasta.jpg") &&
                 p.Images.Any(i => i.Url == "https://example.com/sauce.jpg"))), Times.Once);
@@ -406,9 +412,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreatePostAsync_WithPostFormDto_CreatesPostWithEmptyLists()
         {
             // Arrange
+            var userId = 5;
             var dto = new PostFormDto
             {
-                UserId = 5,
                 Title = "Post with empty lists",
                 IngredientsList = "Basic ingredients",
                 Description = "Post with empty tag and image lists",
@@ -422,16 +428,18 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _postService.CreatePostAsync(dto);
+            await _postService.CreatePostAsync(userId, dto);
 
             // Assert
-            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p => 
-                p.Title == dto.Title && 
+            _mockPostRepository.Verify(r => r.CreatePostAsync(It.Is<Post>(p =>
+                p.Title == dto.Title &&
+                p.UserId == userId &&
                 p.PostTags.Count == 0 &&
                 p.Images.Count == 0 &&
                 p.Calories == 0)), Times.Once);
             _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
+
 
         [Fact]
         public async Task DeletePostAsync_DeletesPostAndComments()

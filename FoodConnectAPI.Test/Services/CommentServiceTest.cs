@@ -226,15 +226,24 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenCommentIsNull()
         {
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(null!))
+            //Arrange
+            int postId = 1;
+            int userId = 1;
+            //Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, null!))
                 .Should().ThrowAsync<ArgumentNullException>();
         }
 
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenInvalidUserId()
         {
-            var addDto = new CommentAddDto { UserId = 0, PostId = 1, Content = "hi" };
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(addDto))
+            // Arrange
+            int postId = 1;
+            int userId = 0;
+            var addDto = new CommentAddDto { Content = "hi" };
+
+            // Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, addDto))
                 .Should().ThrowAsync<ArgumentException>()
                 .WithMessage("Invalid UserId*");
         }
@@ -242,10 +251,14 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenUserNotFound()
         {
-            var addDto = new CommentAddDto { UserId = 123, PostId = 1, Content = "hi" };
+            // Arrange
+            int postId = 1;
+            int userId = 123;
+            var addDto = new CommentAddDto { Content = "hi" };
             _mockUserRepository.Setup(x => x.GetUserByIdAsync(123)).ReturnsAsync((User)null!);
 
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(addDto))
+            // Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, addDto))
                 .Should().ThrowAsync<ArgumentException>()
                 .WithMessage("User not found*");
         }
@@ -253,11 +266,15 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenInvalidPostId()
         {
-            var addDto = new CommentAddDto { UserId = 1, PostId = 0, Content = "hi" };
+            //Arrange
+            int postId = 0;
+            int userId = 1;
+            var addDto = new CommentAddDto { Content = "hi" };
 
             _mockUserRepository.Setup(x => x.GetUserByIdAsync(1)).ReturnsAsync(new User { Id = 1 });
 
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(addDto))
+            //Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, addDto))
                 .Should().ThrowAsync<ArgumentException>()
                 .WithMessage("Invalid PostId*");
         }
@@ -265,11 +282,15 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenPostNotFound()
         {
-            var addDto = new CommentAddDto { UserId = 1, PostId = 2, Content = "hi" };
+            //Arrange
+            int postId = 2;
+            int userId = 1;
+            var addDto = new CommentAddDto { Content = "hi" };
             _mockUserRepository.Setup(x => x.GetUserByIdAsync(1)).ReturnsAsync(new User { Id = 1 });
             _mockPostRepository.Setup(x => x.GetPostByIdAsync(2)).ReturnsAsync((Post)null!);
 
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(addDto))
+            //Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, addDto))
                 .Should().ThrowAsync<ArgumentException>()
                 .WithMessage("Post not found*");
         }
@@ -277,11 +298,15 @@ namespace FoodConnectAPI.Test.Services
         [Fact]
         public async Task CreateCommentAsync_ShouldThrow_WhenContentEmpty()
         {
-            var addDto = new CommentAddDto { UserId = 1, PostId = 2, Content = "  " };
+            //Arrange
+            int postId = 2;
+            int userId = 1;
+            var addDto = new CommentAddDto { Content = "  " };
             _mockUserRepository.Setup(x => x.GetUserByIdAsync(1)).ReturnsAsync(new User { Id = 1 });
             _mockPostRepository.Setup(x => x.GetPostByIdAsync(2)).ReturnsAsync(new Post { Id = 2 });
 
-            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(addDto))
+            //Act & Assert
+            await FluentActions.Invoking(() => _commentService.CreateCommentAsync(postId, userId, addDto))
                 .Should().ThrowAsync<ArgumentException>()
                 .WithMessage("Content cannot be empty*");
         }
@@ -290,7 +315,9 @@ namespace FoodConnectAPI.Test.Services
         public async Task CreateCommentAsync_ShouldCreateAndSave_WhenValid()
         {
             // Arrange
-            var addDto = new CommentAddDto { UserId = 10, PostId = 20, Content = "hello" };
+            int postId = 20;
+            int userId = 10;
+            var addDto = new CommentAddDto { Content = "hello" };
             _mockUserRepository.Setup(x => x.GetUserByIdAsync(10)).ReturnsAsync(new User { Id = 10 });
             _mockPostRepository.Setup(x => x.GetPostByIdAsync(20)).ReturnsAsync(new Post { Id = 20 });
 
@@ -302,7 +329,7 @@ namespace FoodConnectAPI.Test.Services
             _mockCommentRepository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            await _commentService.CreateCommentAsync(addDto);
+            await _commentService.CreateCommentAsync(postId, userId, addDto);
 
             // Assert
             created.Should().NotBeNull();

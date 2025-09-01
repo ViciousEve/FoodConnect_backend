@@ -22,7 +22,9 @@ namespace FoodConnectAPI.Entities
 
         public List<Media> Images { get; set; } // image(s) of the post optional
 
-        //Could be deleted because List<Like> PostLikes is used
+        /// <summary>
+        /// This should not be used because we can get the number of likes from the PostLikes table
+        /// </summary>
         public int Likes { get; set; } = 0; // Number of likes, default is 0
 
         public DateTime CreatedAt { get; set; }
