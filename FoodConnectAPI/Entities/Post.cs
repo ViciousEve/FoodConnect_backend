@@ -21,11 +21,7 @@ namespace FoodConnectAPI.Entities
         public double? Calories { get; set; } // Optional, can be null
 
         public List<Media> Images { get; set; } // image(s) of the post optional
-
-        /// <summary>
-        /// This should not be used because we can get the number of likes from the PostLikes table
-        /// </summary>
-        public int Likes { get; set; } = 0; // Number of likes, default is 0
+       
 
         public DateTime CreatedAt { get; set; }
 
