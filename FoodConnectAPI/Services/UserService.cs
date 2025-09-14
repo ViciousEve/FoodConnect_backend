@@ -81,7 +81,6 @@ namespace FoodConnectAPI.Services
             {
                 return null; // Invalid credentials
             }
-            
             //Create Jwt token
             var tokenHandler = new JwtSecurityTokenHandler();
             
@@ -106,7 +105,9 @@ namespace FoodConnectAPI.Services
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Email, user.Email)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),// Token expiration time
+                Expires = DateTime.UtcNow.AddMinutes(expirationMinutes), // Token expiration time
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
