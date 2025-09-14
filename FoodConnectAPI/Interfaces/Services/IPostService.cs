@@ -8,8 +8,9 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<PostInfoDto> GetPostByIdAsync(int postId, int? currentUserId = null);
         Task<IEnumerable<PostInfoDto>> GetAllPostsAsync(int? currentUserId = null);
         Task<IEnumerable<PostInfoDto>> GetPostsByUserIdAsync(int userId, int? currentUserId = null);
-        Task<Post> UpdatePostAsync(Post post);
+        Task UpdatePostAsync(int postId, PostFormDto post);
         Task<bool> DeletePostAsync(int postId);
-        Task CreatePostAsync(PostFormDto postFormDto);
+        Task CreatePostAsync(int userId, PostFormDto postFormDto);
+        Task<bool> IsOwnerAsync(int userId, int postId);
     }
 }

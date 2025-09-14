@@ -51,16 +51,15 @@ namespace FoodConnectAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePost([FromForm] PostFormDto postFormDto)
         {
-            if (string.IsNullOrWhiteSpace(postFormDto.Title) || string.IsNullOrWhiteSpace(postFormDto.IngredientsList) || string.IsNullOrWhiteSpace(postFormDto.Description))
-            {
-                return BadRequest(new { error = "Title, ingredients, and description are required." });
-            }
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
-            {
                 return Unauthorized(new { error = "Invalid user token." });
-            }
+
 
             try
             {
@@ -78,10 +77,8 @@ namespace FoodConnectAPI.Controllers
         [HttpGet("{postId}/comments")]
         public async Task<IActionResult> GetCommentsByPostId(int postId)
         {
-            if (postId <= 0)
-            {
+            if (postId <= 0)            
                 return BadRequest(new { error = "Invalid post ID." });
-            }
             try
             {
                 var comments = await _commentService.GetCommentsByPostIdAsync(postId);
@@ -99,14 +96,10 @@ namespace FoodConnectAPI.Controllers
         public async Task<IActionResult> AddComment(int postId, [FromBody] CommentAddDto comment)
         {
             if (postId <= 0 || !ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
-            {
                 return Unauthorized(new { error = "Invalid user token." });
-            }
 
             try
             {
@@ -125,14 +118,11 @@ namespace FoodConnectAPI.Controllers
         public async Task<IActionResult> ToggleLikePost(int postId)
         {
             if (postId <= 0)
-            {
                 return BadRequest(new { error = "Invalid post ID." });
-            }
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
-            {
                 return Unauthorized(new { error = "Invalid user token." });
-            }
+
             try
             {
                 bool isLiked = await _likeService.ToggleLikeAsync(userId, postId);
@@ -145,6 +135,33 @@ namespace FoodConnectAPI.Controllers
             }
         }
 
-        
+        // PUT /api/posts/{postId}
+        [Authorize]
+        [HttpPut("{postId}")]
+        public async Task<IActionResult> UpdatePost(int postId, [FromForm] PostFormDto postFormDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { error = "Invalid user token." });
+
+            if (postId <= 0) 
+                return BadRequest(new { error = "Invalid postId" });
+
+            if (!await _postService.IsOwnerAsync(userId, postId))
+                return StatusCode(403, new { error = "You are not the owner of this post." });
+
+            try
+            {
+                await _postService.UpdatePostAsync(postId, postFormDto);
+                return Ok(new { message = "Post updated successfully"});
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
+            }
+        }
     }
 }
