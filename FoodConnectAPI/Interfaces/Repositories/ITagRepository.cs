@@ -13,6 +13,11 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<Tag> UpdateAsync(Tag tag);
         Task<bool> DeleteAsync(int tagId);
         Task<bool> TagExistsAsync(string name);
+        /// <summary>
+        /// Delete all tags that no longer belongs to any post
+        /// </summary>
+        /// <returns></returns>
+        Task<int> DeleteAllOrphanTagsAsync();
         Task SaveChangesAsync();
         Task CreateRangeAsync(List<Tag> tags);
     }

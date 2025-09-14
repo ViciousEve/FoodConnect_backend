@@ -15,7 +15,7 @@ namespace FoodConnectAPI.Services
             _tagRepository = tagRepository;
             _postTagRepository = postTagRepository;
         }
-        public async Task<bool> DeleteAsync(int tagId)
+        public async Task<bool> DeleteOrphanTagAsync(int tagId)
         {
             var tag = await _tagRepository.GetTagByIdAsync(tagId);
             if (tag == null)
@@ -30,7 +30,7 @@ namespace FoodConnectAPI.Services
             return true;
         }
 
-        public async Task<bool> DeleteByNameAsync(string tagName)
+        public async Task<bool> DeleteOrphanTagByNameAsync(string tagName)
         {
             if (string.IsNullOrWhiteSpace(tagName))
                 return false;
@@ -44,6 +44,11 @@ namespace FoodConnectAPI.Services
             await _tagRepository.DeleteAsync(tag.Id);
             await _tagRepository.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<int> DeleteAllOrphanTagsAsync()
+        {
+            return await _tagRepository.DeleteAllOrphanTagsAsync();
         }
 
         public async Task<IEnumerable<TagInfoDto>> GetAllTagsAsync()

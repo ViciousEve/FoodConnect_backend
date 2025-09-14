@@ -7,8 +7,9 @@ namespace FoodConnectAPI.Interfaces.Services
     {
         Task<List<Tag>> ResolveOrCreateTagsAsync(List<string> tagNames);
         //Delete a tag if there are no posts associated with it
-        Task<bool> DeleteAsync(int tagId);
-        Task<bool> DeleteByNameAsync(string tagName);
+        Task<bool> DeleteOrphanTagAsync(int tagId);
+        Task<bool> DeleteOrphanTagByNameAsync(string tagName);
+        Task<int> DeleteAllOrphanTagsAsync();
         Task<Tag> GetTagByIdAsync(int tagId);
         Task<IEnumerable<Tag>> GetTagsByPostIdAsync(int postId);
         Task<Tag> GetTagByNameAsync(string name);
