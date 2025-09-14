@@ -97,32 +97,32 @@ namespace FoodConnectAPI.Services
             return deleted;
         }
 
-        public async Task CreateCommentAsync(CommentAddDto comment)
+        public async Task CreateCommentAsync(int postId, int userId, CommentAddDto comment)
         {
             if(comment == null)
             {
                 throw new ArgumentNullException(nameof(comment), "Comment cannot be null");
             }
             //Validate UserId
-            if (comment.UserId <= 0 )
+            if (userId <= 0 )
             {
-                throw new ArgumentException("Invalid UserId", nameof(comment.UserId));
+                throw new ArgumentException("Invalid UserId", nameof(userId));
             }
-            var user = await _userRepository.GetUserByIdAsync(comment.UserId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
             {
-                throw new ArgumentException("User not found", nameof(comment.UserId));
+                throw new ArgumentException("User not found", nameof(userId));
             }
 
             // Validate PostId
-            if (comment.PostId <= 0)
+            if (postId <= 0)
             {
-                throw new ArgumentException("Invalid PostId", nameof(comment.PostId));
+                throw new ArgumentException("Invalid PostId", nameof(postId));
             }
-            var post = await _postRepository.GetPostByIdAsync(comment.PostId);
+            var post = await _postRepository.GetPostByIdAsync(postId);
             if (post == null)
             {
-                throw new ArgumentException("Post not found", nameof(comment.PostId));
+                throw new ArgumentException("Post not found", nameof(postId));
             }
 
             //Validate Content
@@ -135,8 +135,8 @@ namespace FoodConnectAPI.Services
             var newComment = new Comment
             {
                 Content = comment.Content,
-                UserId = comment.UserId,
-                PostId = comment.PostId,
+                UserId = userId,
+                PostId = postId,
                 CreatedAt = DateTime.UtcNow // Set the creation time to now
             };
             await _commentRepository.CreateCommentAsync(newComment);
