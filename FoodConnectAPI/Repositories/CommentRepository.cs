@@ -18,25 +18,36 @@ namespace FoodConnectAPI.Repositories
 
         public async Task<Comment> GetCommentByIdAsync(int commentId)
         {
-            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
+            return await _context.Comments
+                .AsNoTracking()
+                .Include(c => c.User)
                 .FirstOrDefaultAsync(c => c.Id == commentId);
         }
 
         public async Task<IEnumerable<Comment>> GetAllCommentsAsync()
         {
-            return await _context.Comments.Include(c => c.User).Include(c => c.Post).ToListAsync();
+            return await _context.Comments
+                .AsNoTracking()
+                .Include(c => c.User)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Comment>> GetCommentsByPostIdAsync(int postId)
         {
-            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
-                .Where(c => c.PostId == postId).ToListAsync();
+            return await _context.Comments
+                .AsNoTracking()
+                .Include(c => c.User)
+                .Where(c => c.PostId == postId)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Comment>> GetCommentsByUserIdAsync(int userId)
         {
-            return await _context.Comments.Include(c => c.User).Include(c => c.Post)
-                .Where(c => c.UserId == userId).ToListAsync();
+            return await _context.Comments
+                .AsNoTracking()
+                .Include(c => c.User)
+                .Where(c => c.UserId == userId)
+                .ToListAsync();
         }
 
         /// <summary>
@@ -96,11 +107,32 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="comment"></param>
         /// <returns></returns>
-        public async Task<int> CreateAndReturnIdAsync(Comment comment)
+        //public async Task<int> CreateAndReturnIdAsync(Comment comment)
+        //{
+        //    await _context.Comments.AddAsync(comment);
+        //    await _context.SaveChangesAsync();
+        //    return comment.Id;
+        //}
+
+        public async Task<bool> DeleteCommentsByPostIdAsync(int postId)
         {
-            await _context.Comments.AddAsync(comment);
-            await _context.SaveChangesAsync();
-            return comment.Id;
+            var comments = await _context.Comments.Where(c => c.PostId == postId).ToListAsync();
+            if (!comments.Any())
+            {
+                return false;
+            }
+            _context.Comments.RemoveRange(comments);
+            return true;
+        }
+        public async Task<bool> DeleteCommentsByUserIdAsync(int userId)
+        {
+            var comments = await _context.Comments.Where(c => c.UserId == userId).ToListAsync();
+            if (!comments.Any())
+            {
+                return false;
+            }
+            _context.Comments.RemoveRange(comments);
+            return true;
         }
     }
 }

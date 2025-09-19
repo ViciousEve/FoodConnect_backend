@@ -2,6 +2,7 @@
 using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Models;
 
 namespace FoodConnectAPI.Services
 {
@@ -14,7 +15,7 @@ namespace FoodConnectAPI.Services
             _tagRepository = tagRepository;
             _postTagRepository = postTagRepository;
         }
-        public async Task<bool> DeleteAsync(int tagId)
+        public async Task<bool> DeleteOrphanTagAsync(int tagId)
         {
             var tag = await _tagRepository.GetTagByIdAsync(tagId);
             if (tag == null)
@@ -29,7 +30,7 @@ namespace FoodConnectAPI.Services
             return true;
         }
 
-        public async Task<bool> DeleteByNameAsync(string tagName)
+        public async Task<bool> DeleteOrphanTagByNameAsync(string tagName)
         {
             if (string.IsNullOrWhiteSpace(tagName))
                 return false;
@@ -45,9 +46,21 @@ namespace FoodConnectAPI.Services
             return true;
         }
 
-        public async Task<IEnumerable<Tag>> GetAllTagsAsync()
+        public async Task<int> DeleteAllOrphanTagsAsync()
         {
-            return await _tagRepository.GetAllTagsAsync();
+            return await _tagRepository.DeleteAllOrphanTagsAsync();
+        }
+
+        public async Task<IEnumerable<TagInfoDto>> GetAllTagsAsync()
+        {
+            //can be improved with caching or pagination for large datasets and not linking Posts to Tags but too lazy...
+            var tags =  await _tagRepository.GetAllTagsAsync();
+            //map to Dtos
+            return tags.Select(tag => new TagInfoDto
+            {
+                Id = tag.Id,
+                Name = tag.Name,
+            }).ToList();
         }
 
         public async Task<Tag> GetTagByIdAsync(int tagId)

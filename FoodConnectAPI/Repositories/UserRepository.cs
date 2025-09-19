@@ -33,48 +33,28 @@ namespace FoodConnectAPI.Repositories
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
             return await _context.Users
-                .Include(u => u.Posts)
-                .Include(u => u.Comments)
-                .Include(u => u.Likes)
-                .Include(u => u.Followers)
-                .Include(u => u.Following)
-                .Include(u => u.Reports)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<User> GetByUserNameAsync(string userName)
         {
             return await _context.Users
-                .Include(u => u.Posts)
-                .Include(u => u.Comments)
-                .Include(u => u.Likes)
-                .Include(u => u.Followers)
-                .Include(u => u.Following)
-                .Include(u => u.Reports)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserName == userName);
         }
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
             return await _context.Users
-                .Include(u => u.Posts)
-                .Include(u => u.Comments)
-                .Include(u => u.Likes)
-                .Include(u => u.Followers)
-                .Include(u => u.Following)
-                .Include(u => u.Reports)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<User> GetUserByIdAsync(int userId)
         {
             return await _context.Users
-                .Include(u => u.Posts)
-                .Include(u => u.Comments)
-                .Include(u => u.Likes)
-                .Include(u => u.Followers)
-                .Include(u => u.Following)
-                .Include(u => u.Reports)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }
 
@@ -100,12 +80,6 @@ namespace FoodConnectAPI.Repositories
             return userToUpdate;
         }
 
-        //Redundant method, as EF Core can handle this automatically
-        //public async Task<int> CreateAndReturnIdAsync(User user)
-        //{
-        //    await _context.Users.AddAsync(user);
-        //    await _context.SaveChangesAsync();
-        //    return user.Id;
-        //}
+        
     }
 }

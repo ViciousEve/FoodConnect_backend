@@ -18,19 +18,19 @@ namespace FoodConnectAPI.Test.Services
     public class TagServiceTest
     {
         private readonly Mock<ITagRepository> _mockTagRepository;
-        private readonly Mock<IPostTagRepository> mockPostTagRepository;
+        private readonly Mock<IPostTagRepository> _mockPostTagRepository;
         //private readonly Mock<AppDbContext> _mockDbContext;
         private readonly TagService _tagService;
         public TagServiceTest()
         {
             _mockTagRepository = new Mock<ITagRepository>();
-            mockPostTagRepository = new Mock<IPostTagRepository>();
+            _mockPostTagRepository = new Mock<IPostTagRepository>();
 
             //_mockDbContext = new Mock<AppDbContext>();
 
             _tagService = new TagService(
                 _mockTagRepository.Object, 
-                mockPostTagRepository.Object);
+                _mockPostTagRepository.Object);
         }
 
         [Fact]
@@ -39,10 +39,10 @@ namespace FoodConnectAPI.Test.Services
             // Arrange
             var tagNames = new List<string> { "Spicy", "Sweet" };
             var existingTags = new List<Tag>
-    {
-        new Tag { Id = 1, Name = "spicy" },
-        new Tag { Id = 2, Name = "sweet" }
-    };
+            {
+                new Tag { Id = 1, Name = "spicy" },
+                new Tag { Id = 2, Name = "sweet" }
+            };
 
             _mockTagRepository
                 .Setup(repo => repo.GetTagsByNamesAsync(It.Is<List<string>>(l =>
@@ -129,16 +129,16 @@ namespace FoodConnectAPI.Test.Services
         }
 
         [Fact]
-        public async Task DeleteAsync_ShouldReturnFalse_WhenTagHasPosts()
+        public async Task DeleteOrphanTagAsync_ShouldReturnFalse_WhenTagHasPosts()
         {
             // Arrange
-            var tag = new Tag { Id = 5, Name = "UsedTag" };
+            var tag = new Tag { Id = 5, Name = "unusedtag" };
 
             _mockTagRepository.Setup(r => r.GetTagByIdAsync(5)).ReturnsAsync(tag);
-            mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(5)).ReturnsAsync(true);
+            _mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(5)).ReturnsAsync(true);
 
             // Act
-            var result = await _tagService.DeleteAsync(5);
+            var result = await _tagService.DeleteOrphanTagAsync(5);
 
             // Assert
             result.Should().BeFalse();
@@ -146,19 +146,59 @@ namespace FoodConnectAPI.Test.Services
         }
 
         [Fact]
-        public async Task DeleteAsync_ShouldDelete_WhenUnused()
+        public async Task DeleteOrphanTagAsync_ShouldDelete_WhenUnused()
         {
             // Arrange
-            var tag = new Tag { Id = 7, Name = "UnusedTag" };
+            var tag = new Tag { Id = 7, Name = "unusedtag" };
 
             _mockTagRepository.Setup(r => r.GetTagByIdAsync(7)).ReturnsAsync(tag);
-            mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(7)).ReturnsAsync(false);
+            _mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(7)).ReturnsAsync(false);
 
             _mockTagRepository.Setup(r => r.DeleteAsync(7)).Returns(Task.FromResult(true));
             _mockTagRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
-            var result = await _tagService.DeleteAsync(7);
+            var result = await _tagService.DeleteOrphanTagAsync(7);
+
+            // Assert
+            result.Should().BeTrue();
+            _mockTagRepository.Verify(r => r.DeleteAsync(7), Times.Once);
+            _mockTagRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteOrphanTagByName_ShouldReturnFalse_WhenTagHasPosts()
+        {
+            // Arrange
+            var tag = new Tag { Id = 5, Name = "test" };
+            string tagName = "Test";
+
+            _mockTagRepository.Setup(r => r.GetTagByNameAsync("test")).ReturnsAsync(tag);
+            _mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(5)).ReturnsAsync(true);
+
+            // Act
+            var result = await _tagService.DeleteOrphanTagByNameAsync(tagName);
+
+            // Assert
+            result.Should().BeFalse();
+            _mockTagRepository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteOrphanTagByName_ShouldDelete_WhenUnused()
+        {
+            // Arrange
+            var tag = new Tag { Id = 7, Name = "unusedtag" };
+            string tagName = "unusedtag";
+
+            _mockTagRepository.Setup(r => r.GetTagByNameAsync("unusedtag")).ReturnsAsync(tag);
+            _mockPostTagRepository.Setup(r => r.ExistsWithTagIdAsync(7)).ReturnsAsync(false);
+
+            _mockTagRepository.Setup(r => r.DeleteAsync(7)).Returns(Task.FromResult(true));
+            _mockTagRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _tagService.DeleteOrphanTagByNameAsync(tagName);
 
             // Assert
             result.Should().BeTrue();

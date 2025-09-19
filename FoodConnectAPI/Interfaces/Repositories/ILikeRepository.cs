@@ -14,6 +14,7 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<bool> DeleteLikeAsync(int likeId);
         Task<bool> DeleteLikeByUserAndPostAsync(int userId, int postId);
         Task<bool> UserHasLikedPostAsync(int userId, int postId);
+        Task<bool> DeleteLikeByPostIdAsync(int postId);
         Task SaveChangesAsync();
     }
 }

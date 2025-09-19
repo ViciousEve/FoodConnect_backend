@@ -7,7 +7,7 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<Post> GetPostByIdAsync(int postId);
         Task<IEnumerable<Post>> GetAllPostsAsync();
         Task<IEnumerable<Post>> GetPostsByUserIdAsync(int userId);
-        Task<Post> UpdatePostAsync(Post post);
+        Task<Post> GetPostForUpdateAsync(int postId);
         Task<bool> DeletePostAsync(int postId);
         Task CreatePostAsync(Post post);
         Task SaveChangesAsync();
