@@ -361,6 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
 /FoodConnectAPI/appsettings.json
 /FoodConnectAPI/appsettings.Development.json
 /FoodConnectAPI/wwwroot/Uploads
