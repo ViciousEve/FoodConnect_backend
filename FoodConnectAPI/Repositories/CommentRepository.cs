@@ -75,15 +75,11 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="commentId"></param>
         /// <returns></returns>
-        public async Task<bool> DeleteCommentAsync(int commentId)
+        public async Task<int> DeleteCommentAsync(int commentId)
         {
-            var comment = await _context.Comments.FindAsync(commentId);
-            if (comment == null)
-            {
-                return false;
-            }
-            _context.Comments.Remove(comment);
-            return true;
+            return await _context.Comments
+                .Where(c => c.Id == commentId)
+                .ExecuteDeleteAsync();
         }
 
         /// <summary>
@@ -114,25 +110,17 @@ namespace FoodConnectAPI.Repositories
         //    return comment.Id;
         //}
 
-        public async Task<bool> DeleteCommentsByPostIdAsync(int postId)
+        public async Task<int> DeleteCommentsByPostIdAsync(int postId)
         {
-            var comments = await _context.Comments.Where(c => c.PostId == postId).ToListAsync();
-            if (!comments.Any())
-            {
-                return false;
-            }
-            _context.Comments.RemoveRange(comments);
-            return true;
+            return await _context.Comments
+                .Where(c => c.PostId == postId)
+                .ExecuteDeleteAsync();
         }
-        public async Task<bool> DeleteCommentsByUserIdAsync(int userId)
+        public async Task<int> DeleteCommentsByUserIdAsync(int userId)
         {
-            var comments = await _context.Comments.Where(c => c.UserId == userId).ToListAsync();
-            if (!comments.Any())
-            {
-                return false;
-            }
-            _context.Comments.RemoveRange(comments);
-            return true;
+            return await _context.Comments
+                .Where (c => c.UserId == userId)
+                .ExecuteDeleteAsync();
         }
     }
 }

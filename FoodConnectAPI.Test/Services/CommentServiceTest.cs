@@ -211,14 +211,14 @@ namespace FoodConnectAPI.Test.Services
         public async Task DeleteCommentAsync_ShouldDeleteAndReturnResult()
         {
             // Arrange
-            _mockCommentRepository.Setup(x => x.DeleteCommentAsync(1)).ReturnsAsync(true);
+            _mockCommentRepository.Setup(x => x.DeleteCommentAsync(1)).ReturnsAsync(1);
             _mockCommentRepository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
 
             // Act
             var result = await _commentService.DeleteCommentAsync(1);
 
             // Assert
-            result.Should().BeTrue();
+            result.Should().Be(1);
             _mockCommentRepository.Verify(x => x.DeleteCommentAsync(1), Times.Once);
             _mockCommentRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
         }

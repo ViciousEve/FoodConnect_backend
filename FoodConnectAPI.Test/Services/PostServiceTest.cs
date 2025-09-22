@@ -24,7 +24,9 @@ namespace FoodConnectAPI.Test.Services
     {
         private readonly Mock<IPostRepository> _mockPostRepository;
         private readonly Mock<ICommentRepository> _mockCommentRepository;
-        private readonly Mock<IUserRepository> _mockUserRepository;
+        private readonly Mock<IMediaRepository> _mockMediaRepository;
+        private readonly Mock<IPostTagRepository> _mockPostTagRepository;
+        private readonly Mock<IReportRepository> _mockReportRepository;
         private readonly Mock<ITagService> _mockTagService;
         private readonly Mock<ILikeRepository> _mockLikeRepository;
         private readonly Mock<IFileService> _mockFileService;
@@ -35,7 +37,9 @@ namespace FoodConnectAPI.Test.Services
         {
             _mockPostRepository = new Mock<IPostRepository>();
             _mockCommentRepository = new Mock<ICommentRepository>();
-            _mockUserRepository = new Mock<IUserRepository>();
+            _mockMediaRepository = new Mock<IMediaRepository>();
+            _mockPostTagRepository = new Mock<IPostTagRepository>();
+            _mockReportRepository = new Mock<IReportRepository>();
             _mockTagService = new Mock<ITagService>();
             _mockLikeRepository = new Mock<ILikeRepository>();
             _mockFileService = new Mock<IFileService>();
@@ -56,7 +60,9 @@ namespace FoodConnectAPI.Test.Services
                 _mockPostRepository.Object,
                 _mockCommentRepository.Object,
                 _mockLikeRepository.Object,
-                _mockUserRepository.Object,
+                _mockMediaRepository.Object,
+                _mockPostTagRepository.Object,
+                _mockReportRepository.Object,
                 _mockTagService.Object,
                 _mockFileService.Object,
                 _mockDbContext.Object
@@ -448,6 +454,15 @@ namespace FoodConnectAPI.Test.Services
         {
             // Arrange
             var postId = 1;
+            var post = new Post
+            {
+                Id = 1,
+                Title = "Old",
+                IngredientsList = "Old",
+                Description = "Old",
+                Images = new List<Media> { new Media { Url = "/Uploads/old.png" } },
+                PostTags = new List<PostTag>()
+            };
             var comments = new List<Comment> { new Comment { Id = 10 }, new Comment { Id = 11 } };
 
             var dbFacadeMock = new Mock<DatabaseFacade>(_mockDbContext.Object);
@@ -455,8 +470,9 @@ namespace FoodConnectAPI.Test.Services
             _mockDbContext.Setup(c => c.Database).Returns(dbFacadeMock.Object);
 
             _mockCommentRepository.Setup(c => c.GetCommentsByPostIdAsync(postId)).ReturnsAsync(comments);
-            _mockCommentRepository.Setup(c => c.DeleteCommentsByPostIdAsync(postId)).ReturnsAsync(true);
+            _mockCommentRepository.Setup(c => c.DeleteCommentsByPostIdAsync(postId)).ReturnsAsync(1);
             _mockCommentRepository.Setup(c => c.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _mockPostRepository.Setup(p => p.GetPostByIdAsync(1)).ReturnsAsync(post);
             _mockPostRepository.Setup(p => p.DeletePostAsync(postId)).ReturnsAsync(true);
             _mockPostRepository.Setup(p => p.SaveChangesAsync()).Returns(Task.CompletedTask);
 
@@ -490,11 +506,14 @@ namespace FoodConnectAPI.Test.Services
                 Title = "New",
                 IngredientsList = "New",
                 Description = "New",
-                ImageUrls = new List<string> { "/Uploads/new1.jpg", "/Uploads/new2.jpg" }
+                ImageUrls = new List<string> { "/Uploads/new1.jpg", "/Uploads/new2.jpg" },
+                TagNames = new List<string>()
+                
             };
 
             _mockPostRepository.Setup(r => r.GetPostForUpdateAsync(1)).ReturnsAsync(post);
             _mockTagService.Setup(s => s.DeleteAllOrphanTagsAsync()).ReturnsAsync(0);
+            _mockTagService.Setup(t => t.ResolveOrCreateTagsAsync(It.IsAny<List<string>>())).ReturnsAsync(new List<Tag>());
 
             // Act
             await _postService.UpdatePostAsync(Id, dto);

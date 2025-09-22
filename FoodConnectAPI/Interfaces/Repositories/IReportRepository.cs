@@ -10,8 +10,8 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<IEnumerable<Report>> GetAllReportsAsync();
         Task<int> GetReportCountByPostIdAsync(int postId);
         Task CreateReportAsync(Report report);
-        Task<bool> DeleteReportAsync(int reportId);
-        Task<bool> DeleteReportsByPostIdAsync(int postId);
+        Task<int> DeleteReportAsync(int reportId);
+        Task<int> DeleteReportsByPostIdAsync(int postId);
         Task<bool> UserHasReportedPostAsync(int userId, int postId);
         Task SaveChangesAsync();
     }

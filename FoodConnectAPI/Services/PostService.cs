@@ -11,8 +11,10 @@ namespace FoodConnectAPI.Services
     {
         private readonly IPostRepository _postRepository;
         private readonly ICommentRepository _commentRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly IMediaRepository _mediaRepository;
         private readonly ILikeRepository _likeRepository;
+        private readonly IPostTagRepository _postTagRepository;
+        private readonly IReportRepository _reportRepository;
         private readonly AppDbContext _dbContext;
         private readonly ITagService _tagService;
         private readonly IFileService _fileService;
@@ -24,15 +26,18 @@ namespace FoodConnectAPI.Services
         };
 
         public PostService(IPostRepository postRepository, ICommentRepository commentRepository,
-            ILikeRepository likeRepository, IUserRepository userRepository, 
+            ILikeRepository likeRepository,IMediaRepository mediaRepository , 
+            IPostTagRepository postTagRepository, IReportRepository reportRepository,
             ITagService tagService, IFileService fileService , AppDbContext dbContext)
         {
             _postRepository = postRepository;
             _commentRepository = commentRepository;
-            _dbContext = dbContext;
-            _userRepository = userRepository;
-            _tagService = tagService;
+            _mediaRepository = mediaRepository;
             _likeRepository = likeRepository;
+            _postTagRepository = postTagRepository;
+            _reportRepository = reportRepository;
+            _dbContext = dbContext;
+            _tagService = tagService;
             _fileService = fileService;
         }
 
@@ -140,19 +145,34 @@ namespace FoodConnectAPI.Services
                 postToUpdate.Description = dto.Description;
                 postToUpdate.Calories = dto.Calories ?? 0;
 
-                // Handle images (but don’t delete physical files yet)
+                // Handle images
                 filesToDelete.AddRange(await UpdateImagesAsync(postToUpdate, dto));
 
-                // Handle tags
-                postToUpdate.PostTags.Clear();
-                if (dto.TagNames?.Any() == true)
+                // Handle tags: reconcile adds/removes (delete removed PostTags)
+                var incomingTagNames = dto.TagNames?.Where(n => !string.IsNullOrWhiteSpace(n)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
+                var resolvedTags = await _tagService.ResolveOrCreateTagsAsync(incomingTagNames);
+                var desiredTagIds = new HashSet<int>(resolvedTags.Select(t => t.Id));
+
+                var existingTagIds = new HashSet<int>(postToUpdate.PostTags.Select(pt => pt.TagId));
+
+                // Delete PostTags that are no longer desired
+                var tagIdsToRemove = existingTagIds.Except(desiredTagIds).ToList();
+                foreach (var tagId in tagIdsToRemove)
                 {
-                    var tags = await _tagService.ResolveOrCreateTagsAsync(dto.TagNames);
-                    foreach (var tag in tags)
+                    var postTag = postToUpdate.PostTags.FirstOrDefault(pt => pt.TagId == tagId);
+                    if (postTag != null)
                     {
-                        postToUpdate.PostTags.Add(new PostTag { Tag = tag });
+                        postToUpdate.PostTags.Remove(postTag);
                     }
+                    await _postTagRepository.DeletePostTagAsync(postToUpdate.Id, tagId); //Hit db for each posttags, damn.
                 }
+
+                // Add new PostTags
+                foreach (var tag in resolvedTags.Where(t => !existingTagIds.Contains(t.Id)))
+                {
+                    postToUpdate.PostTags.Add(new PostTag { PostId = postToUpdate.Id, TagId = tag.Id, Tag = tag });
+                }
+                //recheck if this is working
                 await _tagService.DeleteAllOrphanTagsAsync();
 
                 await _postRepository.SaveChangesAsync();
@@ -160,7 +180,7 @@ namespace FoodConnectAPI.Services
                 // commit DB transaction
                 await transaction.CommitAsync();
 
-                // now it’s safe to delete physical files
+                // Delete physical files
                 foreach (var filePath in filesToDelete)
                 {
                     _fileService.DeleteFile(filePath);
@@ -180,17 +200,36 @@ namespace FoodConnectAPI.Services
             {
                 try
                 {
-                    // Delete all comments related to this post first
+                    var postToDelete = await _postRepository.GetPostByIdAsync(postId);
+                    if (postToDelete == null)
+                        return false;
+
+                    List<string> urlToDelete = new List<string>();
+
+                    // Delete all related entities
                     await _commentRepository.DeleteCommentsByPostIdAsync(postId);
-                    await _commentRepository.SaveChangesAsync();
-                    // Delete all likes related to this post
                     await _likeRepository.DeleteLikeByPostIdAsync(postId);
-                    await _likeRepository.SaveChangesAsync();
+                    await _mediaRepository.DeleteMediaByPostIdAsync(postId);
+                    await _postTagRepository.DeleteAllByPostIdAsync(postId);
+                    await _reportRepository.DeleteReportsByPostIdAsync(postId);
+                    
+                    
+                    foreach (var img in postToDelete.Images)
+                    {
+                        if(img.Url.StartsWith("/Uploads")) 
+                            urlToDelete.Add(img.Url);
+                    } 
 
                     var deleted = await _postRepository.DeletePostAsync(postId);
                     await _postRepository.SaveChangesAsync();
 
+                    await _tagService.DeleteAllOrphanTagsAsync();
+
                     await transaction.CommitAsync();
+
+                    foreach (var filePath in urlToDelete)                   
+                        _fileService.DeleteFile(filePath);     
+                    
                     return deleted;
                 }
                 catch
@@ -325,7 +364,7 @@ namespace FoodConnectAPI.Services
             foreach (var img in toRemove)
             {
                 post.Images.Remove(img);
-
+                await _mediaRepository.DeleteMediaAsync(img.Id);
                 // mark for deletion later if it’s under /Uploads
                 if (img.Url.StartsWith("/Uploads"))
                 {
@@ -337,7 +376,7 @@ namespace FoodConnectAPI.Services
             var toAdd = savedImageUrls.Except(existingUrls).ToList();
             foreach (var newUrl in toAdd)
             {
-                post.Images.Add(new Media { Url = newUrl });
+                post.Images.Add(new Media { Url = newUrl, PostId = post.Id});
             }
 
             return filesToDelete;

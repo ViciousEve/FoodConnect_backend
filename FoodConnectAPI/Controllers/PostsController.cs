@@ -163,5 +163,32 @@ namespace FoodConnectAPI.Controllers
                 return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
             }
         }
+
+        // DELETE /api/posts/{postId}
+        [Authorize]
+        [HttpDelete("{postId}")]
+        public async Task<IActionResult> DeletePost(int postId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { error = "Invalid user token." });
+
+            if (postId <= 0)
+                return BadRequest(new { error = "Invalid postId" });
+
+            if (!await _postService.IsOwnerAsync(userId, postId))
+                return StatusCode(403, new { error = "You are not the owner of this post." });
+
+            try
+            {
+                await _postService.DeletePostAsync(postId);
+                return Ok(new { message = "Post deleted successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + e.Message });
+            }
+
+        }
     }
 }

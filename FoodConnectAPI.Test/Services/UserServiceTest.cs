@@ -301,7 +301,7 @@ namespace FoodConnectAPI.Test.Services
                 .ReturnsAsync(true);
 
             _mockCommentRepository.Setup(x => x.DeleteCommentAsync(It.IsAny<int>()))
-                .ReturnsAsync(true);
+                .ReturnsAsync(1);
 
             _mockUserRepository.Setup(x => x.DeleteUserAsync(user.Id))
                 .ReturnsAsync(true);
