@@ -9,8 +9,8 @@ namespace FoodConnectAPI.Interfaces.Repositories
         Task<IEnumerable<Media>> GetAllMediaAsync();
         Task CreateMediaAsync(Media media);
         Task<Media> UpdateMediaAsync(Media media);
-        Task<bool> DeleteMediaAsync(int mediaId);
-        Task<bool> DeleteMediaByPostIdAsync(int postId);
+        Task<int> DeleteMediaAsync(int mediaId);
+        Task<int> DeleteMediaByPostIdAsync(int postId);
         Task SaveChangesAsync();
     }
 }

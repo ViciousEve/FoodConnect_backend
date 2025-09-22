@@ -68,7 +68,7 @@ namespace FoodConnectAPI.Controllers
                 return BadRequest(new { error = "Invalid comment ID." });
             }
             var isDeleted = await _commentService.DeleteCommentAsync(commentId);
-            if (!isDeleted)
+            if (isDeleted <= 0)
             {
                 return NotFound(new { error = "Comment not found." });
             }

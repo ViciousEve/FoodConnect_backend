@@ -90,7 +90,7 @@ namespace FoodConnectAPI.Services
             return updated;
         }
 
-        public async Task<bool> DeleteCommentAsync(int commentId)
+        public async Task<int> DeleteCommentAsync(int commentId)
         {
             var deleted = await _commentRepository.DeleteCommentAsync(commentId);
             await _commentRepository.SaveChangesAsync();

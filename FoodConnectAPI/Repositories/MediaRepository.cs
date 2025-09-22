@@ -50,27 +50,28 @@ namespace FoodConnectAPI.Repositories
         }
 
         /// <summary>
-        /// Deletes a media entry by its ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// Deletes a media entry by its ID using tracked entity removal to avoid severed required FK issues.
         /// </summary>
-        public async Task<bool> DeleteMediaAsync(int mediaId)
+        public async Task<int> DeleteMediaAsync(int mediaId)
         {
-            var media = await _context.Media.FindAsync(mediaId);
-            if (media == null) return false;
-
+            var media = await _context.Media.FirstOrDefaultAsync(m => m.Id == mediaId);
+            if (media == null)
+            {
+                return 0;
+            }
             _context.Media.Remove(media);
-            return true;
+            return 1;
         }
 
         /// <summary>
-        /// Deletes all media entries associated with a specific post ID. Not persisted, use SaveChangesAsync to persist changes.
+        /// Deletes all media entries associated with a specific post ID.
         /// </summary>
-        public async Task<bool> DeleteMediaByPostIdAsync(int postId)
+        public async Task<int> DeleteMediaByPostIdAsync(int postId)
         {
-            var mediaList = await _context.Media.Where(m => m.PostId == postId).ToListAsync();
-            if (!mediaList.Any()) return false;
+            return await _context.Media
+                .Where(m => m.PostId == postId)
+                .ExecuteDeleteAsync();
 
-            _context.Media.RemoveRange(mediaList);
-            return true;
         }
 
         public async Task SaveChangesAsync()

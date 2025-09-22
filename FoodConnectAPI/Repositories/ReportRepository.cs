@@ -74,13 +74,13 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="reportId"></param>
         /// <returns></returns>
-        public async Task<bool> DeleteReportAsync(int reportId)
+        public async Task<int> DeleteReportAsync(int reportId)
         {
             var report = await _context.Reports.FindAsync(reportId);
-            if (report == null) return false;
+            if (report == null) return 0;
 
             _context.Reports.Remove(report);
-            return true;
+            return 1;
         }
 
         /// <summary>
@@ -88,13 +88,11 @@ namespace FoodConnectAPI.Repositories
         /// </summary>
         /// <param name="postId"></param>
         /// <returns></returns>
-        public async Task<bool> DeleteReportsByPostIdAsync(int postId)
+        public async Task<int> DeleteReportsByPostIdAsync(int postId)
         {
-            var reports = await _context.Reports.Where(r => r.PostId == postId).ToListAsync();
-            if (!reports.Any()) return false;
-
-            _context.Reports.RemoveRange(reports);
-            return true;
+            return await _context.Reports
+                .Where(r => r.PostId == postId)
+                .ExecuteDeleteAsync();
         }
 
         public async Task<bool> UserHasReportedPostAsync(int userId, int postId)
