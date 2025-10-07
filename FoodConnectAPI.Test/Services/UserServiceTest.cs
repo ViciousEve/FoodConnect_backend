@@ -535,5 +535,141 @@ namespace FoodConnectAPI.Test.Services
                 .Should().ThrowAsync<InvalidOperationException>();
             exception.Which.Message.Should().Be($"File {fileName} is not a valid image.");
         }
+
+        [Fact]
+        public async Task UpdateProfile_WhenUserNotFound_ShouldThrowKeyNotFoundException()
+        {
+            // Arrange
+            _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(It.IsAny<int>()))
+                .ReturnsAsync((User)null);
+
+            var dto = new UserUpdateDto { Email = "new@mail.com" };
+
+            // Act
+            Func<Task> act = async () => await _userService.UpdateProfile(1, dto);
+
+            // Assert
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage("User with ID 1 not found");
+        }
+
+        [Fact]
+        public async Task UpdateProfile_WhenEmailAlreadyRegistered_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var existingUser = new User { Id = 2, Email = "existing@mail.com", DisplayEmail = "existing@mail.com", Role = "user",  Region = "R", PasswordHash = "p" };
+            var currentUser = new User { Id = 1, Email = "old@mail.com", DisplayEmail = "existing@mail.com", Role = "user", Region= "R", PasswordHash = "p" };
+
+            _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(1))
+                .ReturnsAsync(currentUser);
+
+            // Simulate existing user with the same email (not available)
+            _mockUserRepository.Setup(r => r.GetUserByEmailAsync("existing@mail.com"))
+                .ReturnsAsync(existingUser);
+
+            var dto = new UserUpdateDto { Email = "existing@mail.com" };
+
+            // Act
+            Func<Task> act = async () => await _userService.UpdateProfile(1, dto);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("Email is already registered");
+        }
+
+        [Fact]
+        public async Task UpdateProfile_WhenPasswordsDoNotMatch_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var user = new User {Id = 1, Email = "user@mail.com", DisplayEmail = "existing@mail.com", Role = "user", Region = "R", PasswordHash = "p" };
+            _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(1))
+                .ReturnsAsync(user);
+
+            // Simulate email is available
+            _mockUserRepository.Setup(r => r.GetUserByEmailAsync("user@mail.com"))
+                .ReturnsAsync((User)null);
+
+            var dto = new UserUpdateDto
+            {
+                Email = "user@mail.com",
+                Password = "newpass",
+                ConfirmPassword = "wrongpass"
+            };
+
+            // Act
+            Func<Task> act = async () => await _userService.UpdateProfile(1, dto);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentException>()
+                .WithMessage("Passwords do not match");
+        }
+
+        [Fact]
+        public async Task UpdateProfile_WithValidFields_ShouldUpdateUserSuccessfully()
+        {
+            // Arrange
+            var user = new User
+            {
+                Id = 1,
+                Email = "old@mail.com",
+                UserName = "OldUser",
+                Region = "OldRegion",
+                Role = "user",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("oldpassword")
+            };
+
+            _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(1))
+                .ReturnsAsync(user);
+
+            // Email is available
+            _mockUserRepository.Setup(r => r.GetUserByEmailAsync("new@mail.com"))
+                .ReturnsAsync((User)null);
+
+            var dto = new UserUpdateDto
+            {
+                Email = "new@mail.com",
+                UserName = "NewUser",
+                Region = "NewRegion"
+            };
+
+            // Act
+            var result = await _userService.UpdateProfile(1, dto);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Email.Should().Be("new@mail.com");
+            result.UserName.Should().Be("NewUser");
+            user.Region.Should().Be("NewRegion");
+            result.Token.Should().NotBeNullOrEmpty();
+
+            _mockUserRepository.Verify(r => r.UpdateUserAsync(user), Times.Once);
+            _mockUserRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateProfile_WithPasswordProvided_ShouldHashPassword()
+        {
+            // Arrange
+            var user = new User {Id = 1, Email = "user@mail.com", DisplayEmail = "existing@mail.com", Role = "user", Region = "R", PasswordHash = "p" };
+            _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(1))
+                .ReturnsAsync(user);
+            _mockUserRepository.Setup(r => r.GetUserByEmailAsync("user@mail.com"))
+                .ReturnsAsync((User)null); // email is available
+
+            var dto = new UserUpdateDto
+            {
+                Email = "user@mail.com",
+                Password = "secret123",
+                ConfirmPassword = "secret123"
+            };
+
+            // Act
+            var result = await _userService.UpdateProfile(1, dto);
+
+            // Assert
+            result.Should().NotBeNull();
+            user.PasswordHash.Should().NotBeNullOrEmpty();
+            user.PasswordHash.Should().NotContain("secret123"); // ensure it's hashed
+        }
     }
 }
