@@ -80,6 +80,10 @@ namespace FoodConnectAPI.Repositories
             return userToUpdate;
         }
 
-        
+        public async Task<User> GetUserForUpdateAsync(int userId)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
     }
 }

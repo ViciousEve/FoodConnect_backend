@@ -14,6 +14,9 @@ namespace FoodConnectAPI.Entities
         [MaxLength(255)]
         public string Email { get; set; }
 
+        [MaxLength(255)]
+        public string? DisplayEmail { get; set; }
+
         [Required]
         public string PasswordHash { get; set; }
 
@@ -24,7 +27,7 @@ namespace FoodConnectAPI.Entities
         [Required]
         [MaxLength(30)]
         public string Region { get; set; } //e.g., "America", "Europe", "Asia" , etc.
-        public int TotalLikesReceived { get; set; } // Total likes received by the user
+        public int TotalLikesReceived { get; set; } // Total likes received by other users
 
         public string? ProfilePictureUrl { get; set; } //optional profile picture
 

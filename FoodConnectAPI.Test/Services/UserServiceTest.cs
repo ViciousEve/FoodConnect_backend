@@ -1,17 +1,18 @@
-﻿using FoodConnectAPI.Services;
+﻿using FluentAssertions;
+using FoodConnectAPI.Data;
+using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
-using FoodConnectAPI.Entities;
-using FoodConnectAPI.Data;
+using FoodConnectAPI.Services;
+using FoodConnectAPI.Test.Factories;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using FoodConnectAPI.Test.Factories;
 
 namespace FoodConnectAPI.Test.Services
 {
@@ -22,6 +23,7 @@ namespace FoodConnectAPI.Test.Services
         private readonly Mock<ICommentRepository> _mockCommentRepository;
         private readonly Mock<AppDbContext> _mockDbContext;
         private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly Mock<IFileService> _mockFileService;
         //private readonly Mock<IDbContextTransaction> _mockTransaction;
         private readonly UserService _userService;
 
@@ -30,6 +32,7 @@ namespace FoodConnectAPI.Test.Services
             _mockUserRepository = new Mock<IUserRepository>();
             _mockPostRepository = new Mock<IPostRepository>();
             _mockCommentRepository = new Mock<ICommentRepository>();
+            _mockFileService = new Mock<IFileService>();
 
             _mockConfiguration = MockConfigurationFactory.CreateJwtMock();
 
@@ -50,7 +53,8 @@ namespace FoodConnectAPI.Test.Services
                 _mockPostRepository.Object,
                 _mockCommentRepository.Object,
                 _mockDbContext.Object,
-                _mockConfiguration.Object
+                _mockConfiguration.Object,
+                _mockFileService.Object
             );
         }
 
@@ -387,7 +391,8 @@ namespace FoodConnectAPI.Test.Services
                 _mockPostRepository.Object,
                 _mockCommentRepository.Object,
                 _mockDbContext.Object,
-                mockConfigWithoutJwt.Object
+                mockConfigWithoutJwt.Object,
+                _mockFileService.Object
             );
 
             _mockUserRepository.Setup(x => x.GetUserByEmailAsync(loginDto.Email))
@@ -398,6 +403,137 @@ namespace FoodConnectAPI.Test.Services
                 .Should().ThrowAsync<InvalidOperationException>();
 
             exception.Which.Message.Should().Be("JWT SecretKey is not configured. Please check appsettings.json");
+        }
+
+        //Test update profile picture
+        [Fact]
+        public async Task UpdateProfilePictureAsync_WithValidData_ShouldUpdateProfilePictureUrl()
+        {
+            // Arrange
+            var userId = 1;
+            var fileContent = new byte[] { 0x20, 0x20, 0x20 }; // Dummy file content
+            var fileName = "profile.jpg";
+            var contentType = "image/jpeg";
+            var filePath = "Uploads/profile.jpg";
+            var user = new User
+            {
+                Id = userId,
+                UserName = "testuser",
+                Email = "test@gmail.com",
+                ProfilePictureUrl = "old_url.jpg",
+                Role = "user",
+                Region = "America"
+
+            };
+            // Mock IFormFile
+            var stream = new MemoryStream(fileContent);
+            var formFile = new FormFile(stream, 0, fileContent.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync(user);
+            _mockUserRepository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
+            _mockFileService.Setup(x => x.SaveFileAsync(formFile, "Uploads")).ReturnsAsync(filePath);
+
+            //Act
+            await _userService.UpdateProfilePicture(userId, formFile);
+
+            //Assert
+            user.ProfilePictureUrl.Should().Be(filePath);
+            _mockUserRepository.Verify(x => x.UpdateUserAsync(It.Is<User>(u => u == user)), Times.Once);
+            _mockUserRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
+            _mockFileService.Verify(x => x.SaveFileAsync(formFile, "Uploads"), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateProfilePictureAsync_WithNonExistentUser_ShouldThrowKeyNotFoundException()
+        {
+            // Arrange
+            var userId = 999; // Non-existent user ID
+            var fileContent = new byte[] { 0x20, 0x20, 0x20 }; // Dummy file content
+            var fileName = "profile.jpg";
+            var contentType = "image/jpeg";
+            // Mock IFormFile
+            var stream = new MemoryStream(fileContent);
+            var formFile = new FormFile(stream, 0, fileContent.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync((User)null!);
+            // Act & Assert
+            var exception = await FluentActions.Invoking(() => _userService.UpdateProfilePicture(userId, formFile))
+                .Should().ThrowAsync<KeyNotFoundException>();
+            exception.Which.Message.Should().Be($"User with ID {userId} not found");
+        }
+
+
+        [Fact]
+        public async Task UpdateProfilePictureAsync_WithInvalidFileExtension_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var userId = 1;
+            var fileContent = new byte[] { 0x20, 0x20, 0x20 }; // Dummy file content
+            var fileName = "profile.txt"; // Invalid extension
+            var contentType = "text/plain";
+            var user = new User
+            {
+                Id = userId,
+                UserName = "testuser",
+                Email = "test@gmail.com",
+                ProfilePictureUrl = "old_url.jpg",
+                Role = "user",
+                Region = "America"
+
+            };
+
+            // Mock IFormFile
+            var stream = new MemoryStream(fileContent);
+            var formFile = new FormFile(stream, 0, fileContent.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync(user);
+
+            // Act & Assert
+            var exception = await FluentActions.Invoking(() => _userService.UpdateProfilePicture(userId, formFile))
+                .Should().ThrowAsync<InvalidOperationException>();
+            exception.Which.Message.Should().Be($"File {fileName} has an invalid or unsupported extension.");
+        }
+
+        [Fact]
+        public async Task UpdateProfilePictureAsync_WithInvalidMimeType_ShouldThrowInvalidOperationException()
+        {
+            // Arrange
+            var userId = 1;
+            var fileContent = new byte[] { 0x20, 0x20, 0x20 }; // Dummy file content
+            var fileName = "profile.jpg"; // Valid extension
+            var contentType = "application/pdf"; // Invalid MIME type
+            var user = new User
+            {
+                Id = userId,
+                UserName = "testuser",
+                Email = "test@gmail.com",
+                ProfilePictureUrl = "old_url.jpg",
+                Role = "user",
+                Region = "America"
+
+            };
+
+            // Mock IFormFile
+            var stream = new MemoryStream(fileContent);
+            var formFile = new FormFile(stream, 0, fileContent.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync(user);
+            // Act & Assert
+            var exception = await FluentActions.Invoking(() => _userService.UpdateProfilePicture(userId, formFile))
+                .Should().ThrowAsync<InvalidOperationException>();
+            exception.Which.Message.Should().Be($"File {fileName} is not a valid image.");
         }
     }
 }

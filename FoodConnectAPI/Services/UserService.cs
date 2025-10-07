@@ -19,14 +19,25 @@ namespace FoodConnectAPI.Services
         private readonly ICommentRepository _commentRepository;
         private readonly AppDbContext _dbContext;
         private readonly IConfiguration _configuration;
+        private readonly IFileService _fileService;
 
-        public UserService(IUserRepository userRepository, IPostRepository postRepository, ICommentRepository commentRepository, AppDbContext dbContext, IConfiguration configuration)
+        const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+        // Allowed extensions (lowercase)
+        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".webp"
+        };
+
+        public UserService(IUserRepository userRepository, IPostRepository postRepository,
+            ICommentRepository commentRepository, AppDbContext dbContext,
+            IConfiguration configuration, IFileService fileService)
         {
             _userRepository = userRepository;
             _postRepository = postRepository;
             _commentRepository = commentRepository;
             _dbContext = dbContext;
             _configuration = configuration;
+            _fileService = fileService;
         }
 
         public async Task DeleteAsync(string email)
@@ -82,15 +93,29 @@ namespace FoodConnectAPI.Services
                 return null; // Invalid credentials
             }
             //Create Jwt token
+            var tokenString = GenerateJwtToken(user);
+
+            // Return user DTO with token
+            return new UserDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.DisplayEmail != null? user.DisplayEmail : user.Email,
+                Token = tokenString
+            };
+        }
+
+        private string GenerateJwtToken(User user)
+        {
             var tokenHandler = new JwtSecurityTokenHandler();
-            
+
             // Get JWT configuration with fallback
             var secretKey = _configuration["Jwt:SecretKey"];
             if (string.IsNullOrEmpty(secretKey))
             {
                 throw new InvalidOperationException("JWT SecretKey is not configured. Please check appsettings.json");
             }
-            
+
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             if (!int.TryParse(_configuration["Jwt:ExpirationMinutes"], out int expirationMinutes))
@@ -112,21 +137,13 @@ namespace FoodConnectAPI.Services
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-            // Return user DTO with token
-            return new UserDto
-            {
-                Id = user.Id,
-                UserName = user.UserName,
-                Email = user.Email,
-                Token = tokenString
-            };
+            return tokenHandler.WriteToken(token);
         }
 
         public async Task<bool> IsEmailAvailableAsync(string email)
         {
             var user = await _userRepository.GetUserByEmailAsync(email);
-            if(user == null)
+            if (user == null)
             {
                 return true; // Email is available
             }
@@ -142,7 +159,8 @@ namespace FoodConnectAPI.Services
                 throw new ArgumentException("Passwords do not match");
             }
             //check if email is available
-            string normalizedEmail = userRegisterDto.Email.Trim().ToLowerInvariant();
+            string email = userRegisterDto.Email.Trim().ToLowerInvariant();
+            string normalizedEmail = email;
             bool isEmailAvailable = await IsEmailAvailableAsync(normalizedEmail);
             if (!isEmailAvailable)
             {
@@ -154,6 +172,7 @@ namespace FoodConnectAPI.Services
             {
                 UserName = userRegisterDto.UserName,
                 Email = normalizedEmail,
+                DisplayEmail = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(userRegisterDto.Password),
                 Region = userRegisterDto.Region,
                 Role = "user", // Default role for new users
@@ -163,6 +182,87 @@ namespace FoodConnectAPI.Services
             //Add user to repository
             await _userRepository.CreateUserAsync(newUser);
             await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task UpdateProfilePicture(int userId, IFormFile profilePicture)
+        {
+            var user = await _userRepository.GetUserForUpdateAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException($"User with ID {userId} not found");
+            }
+
+            // Validate file size
+            if (profilePicture.Length > MaxFileSize)
+                throw new InvalidOperationException($"File {profilePicture.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
+
+            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+
+            // Validate file extension
+            if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
+            {
+                throw new InvalidOperationException($"File {profilePicture.FileName} has an invalid or unsupported extension.");
+            }
+            //Vilidate MIME type for images
+            if (!profilePicture.ContentType.StartsWith("image/"))
+            {
+                throw new InvalidOperationException($"File {profilePicture.FileName} is not a valid image.");
+            }
+
+            var relativePath = await _fileService.SaveFileAsync(profilePicture, "Uploads");
+
+            // Update user's profile picture URL
+            user.ProfilePictureUrl = relativePath;
+            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.SaveChangesAsync();
+        }
+
+        public async Task<UserDto> UpdateProfile(int userId, UserUpdateDto userUpdateDto)
+        {
+            var user = await _userRepository.GetUserForUpdateAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException($"User with ID {userId} not found");
+            }
+            // check email availability  if changed
+            string normalizedEmail = userUpdateDto.Email.Trim().ToLowerInvariant();
+            if (!await IsEmailAvailableAsync(userUpdateDto.Email) && user.Email != normalizedEmail)
+            {
+                throw new ArgumentException("Email is already registered");
+            }
+
+            user.Email = normalizedEmail;
+            user.DisplayEmail = userUpdateDto.Email;
+
+            // Update other fields if provided
+            if (!string.IsNullOrWhiteSpace(userUpdateDto.UserName))
+            {
+                user.UserName = userUpdateDto.UserName;
+            }
+            if (!string.IsNullOrWhiteSpace(userUpdateDto.Region))
+            {
+                user.Region = userUpdateDto.Region;
+            }
+            if (!string.IsNullOrWhiteSpace(userUpdateDto.Password))
+            {
+                if (userUpdateDto.Password != userUpdateDto.ConfirmPassword)
+                {
+                    throw new ArgumentException("Passwords do not match");
+                }
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(userUpdateDto.Password);
+            }
+            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            //create new token and return updated user dto
+            var tokenString = GenerateJwtToken(user);
+            return new UserDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.DisplayEmail != null ? user.DisplayEmail : user.Email,
+                Token = tokenString //Could cause issues if old token is still valid 
+            };
         }
     }
 }
