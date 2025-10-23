@@ -5,9 +5,11 @@ namespace FoodConnectAPI.Interfaces.Services
 {
     public interface IUserService
     {
-        public Task<UserDto> AuthenticateAsync(UserLoginDto userLoginDto);
-        public Task RegisterAsync(UserRegisterDto userRegisterDto);
-        public Task<bool> IsEmailAvailableAsync(string email);
-        public Task DeleteAsync(string email);
+        Task<UserDto> AuthenticateAsync(UserLoginDto userLoginDto);
+        Task RegisterAsync(UserRegisterDto userRegisterDto);
+        Task<bool> IsEmailAvailableAsync(string email);
+        Task UpdateProfilePicture(int userId, IFormFile profilePicture);
+        Task<UserDto> UpdateProfile(int userId, UserUpdateDto userUpdateDto);
+        Task DeleteAsync(string email);
     }
 }
