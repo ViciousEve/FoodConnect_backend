@@ -49,6 +49,7 @@ namespace FoodConnectAPI.Controllers
         // POST /api/posts
         [Authorize]
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreatePost([FromForm] PostFormDto postFormDto)
         {
 
@@ -138,6 +139,7 @@ namespace FoodConnectAPI.Controllers
         // PUT /api/posts/{postId}
         [Authorize]
         [HttpPut("{postId}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdatePost(int postId, [FromForm] PostFormDto postFormDto)
         {
             if (!ModelState.IsValid)

@@ -14,6 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+// Swagger config
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // Add CORS policy
 builder.Services.AddCors(options =>
 {
@@ -80,9 +84,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 var app = builder.Build();
 
+if(app.Environment.IsDevelopment())
+{
+
+    // Enable Swagger in development
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 // Configure the HTTP request pipeline.
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 // Serve static files from wwwroot folder
 app.UseStaticFiles();

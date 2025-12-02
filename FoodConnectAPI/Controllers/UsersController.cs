@@ -18,7 +18,8 @@ namespace FoodConnectAPI.Controllers
 
         [Authorize]
         [HttpPatch("profile-picture")]
-        public async Task<IActionResult> UpdateProfilePicture([FromForm] IFormFile profilePicture)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateProfilePicture(IFormFile profilePicture)
         {
             if (profilePicture == null)
                 return BadRequest(new { error = "Profile picture is required." });
@@ -47,8 +48,8 @@ namespace FoodConnectAPI.Controllers
                 return Unauthorized(new { error = "Invalid user token." });
             try
             {
-                await _userService.UpdateProfile(userId, userUpdateDto);
-                return NoContent();
+                var updatedUser = await _userService.UpdateProfile(userId, userUpdateDto);
+                return Ok(updatedUser);
             }
             catch (ArgumentException argEx)
             {

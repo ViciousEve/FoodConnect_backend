@@ -56,6 +56,10 @@ namespace FoodConnectAPI.Services
 
                     // Delete all posts by user (and their related comments via PostService logic)
                     var posts = await _postRepository.GetPostsByUserIdAsync(user.Id);
+                    if (posts == null)
+                    {
+                        posts = new List<Post>();
+                    }
                     foreach (var post in posts)
                     {
                         await _postRepository.DeletePostAsync(post.Id);
@@ -64,6 +68,10 @@ namespace FoodConnectAPI.Services
 
                     // Delete all comments by user (that are not already deleted with posts)
                     var comments = await _commentRepository.GetCommentsByUserIdAsync(user.Id);
+                    if (comments == null)
+                    {
+                        comments = new List<Comment>();
+                    }
                     foreach (var comment in comments)
                     {
                         await _commentRepository.DeleteCommentAsync(comment.Id);
@@ -100,7 +108,9 @@ namespace FoodConnectAPI.Services
             {
                 Id = user.Id,
                 UserName = user.UserName,
-                Email = user.DisplayEmail != null? user.DisplayEmail : user.Email,
+                Email = user.DisplayEmail != null ? user.DisplayEmail : user.Email,
+                Region = user.Region,
+                ProfilePictureUrl = user.ProfilePictureUrl,
                 Token = tokenString
             };
         }
@@ -151,7 +161,7 @@ namespace FoodConnectAPI.Services
         }
 
 
-        public async Task RegisterAsync(UserRegisterDto userRegisterDto)
+        public async Task<UserDto> RegisterAsync(UserRegisterDto userRegisterDto)
         {
             //Validate that password match
             if (userRegisterDto.Password != userRegisterDto.ConfirmPassword)
@@ -182,6 +192,14 @@ namespace FoodConnectAPI.Services
             //Add user to repository
             await _userRepository.CreateUserAsync(newUser);
             await _userRepository.SaveChangesAsync();
+
+            return new UserDto
+            {
+                Id = newUser.Id,
+                UserName = newUser.UserName,
+                Email = newUser.DisplayEmail != null ? newUser.DisplayEmail : newUser.Email,
+                Region = newUser.Region
+            };
         }
 
         public async Task UpdateProfilePicture(int userId, IFormFile profilePicture)
@@ -261,8 +279,10 @@ namespace FoodConnectAPI.Services
                 Id = user.Id,
                 UserName = user.UserName,
                 Email = user.DisplayEmail != null ? user.DisplayEmail : user.Email,
+                Region = user.Region,
                 Token = tokenString //Could cause issues if old token is still valid 
             };
         }
+
     }
 }
