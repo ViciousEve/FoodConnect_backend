@@ -49,7 +49,7 @@ A RESTful Web API for a food recipe sharing social platform built with **ASP.NET
 
 ## 🏗️ Architecture
 
-The project follows a **Clean Architecture** pattern with clear separation of concerns:
+The project follows a **Layered** pattern with clear separation of concerns:
 
 ```
 FoodConnectAPI/
