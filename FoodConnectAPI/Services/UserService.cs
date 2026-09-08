@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Repositories;
+using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +20,7 @@ namespace FoodConnectAPI.Services
         private readonly AppDbContext _dbContext;
         private readonly IConfiguration _configuration;
         private readonly IFileService _fileService;
+        private readonly IFollowRepository _followRepository;
 
         const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
         // Allowed extensions (lowercase)
@@ -30,7 +31,7 @@ namespace FoodConnectAPI.Services
 
         public UserService(IUserRepository userRepository, IPostRepository postRepository,
             ICommentRepository commentRepository, AppDbContext dbContext,
-            IConfiguration configuration, IFileService fileService)
+            IConfiguration configuration, IFileService fileService, IFollowRepository followRepository)
         {
             _userRepository = userRepository;
             _postRepository = postRepository;
@@ -38,6 +39,7 @@ namespace FoodConnectAPI.Services
             _dbContext = dbContext;
             _configuration = configuration;
             _fileService = fileService;
+            _followRepository = followRepository;
         }
 
         public async Task DeleteAsync(string email)
@@ -138,7 +140,8 @@ namespace FoodConnectAPI.Services
                 Subject = new ClaimsIdentity(new Claim[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email)
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Role)
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(expirationMinutes), // Token expiration time
                 Issuer = _configuration["Jwt:Issuer"],
@@ -281,6 +284,32 @@ namespace FoodConnectAPI.Services
                 Email = user.DisplayEmail != null ? user.DisplayEmail : user.Email,
                 Region = user.Region,
                 Token = tokenString //Could cause issues if old token is still valid 
+            };
+        }
+
+        public async Task<UserProfileDto> GetUserProfileAsync(int userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var followerCount = await _followRepository.GetFollowerCountAsync(userId);
+            var followingCount = await _followRepository.GetFollowingCountAsync(userId);
+            var posts = await _postRepository.GetPostsByUserIdAsync(userId);
+            var postCount = posts?.Count() ?? 0;
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Region = user.Region,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                TotalLikesReceived = user.TotalLikesReceived,
+                FollowerCount = followerCount,
+                FollowingCount = followingCount,
+                PostCount = postCount
             };
         }
 

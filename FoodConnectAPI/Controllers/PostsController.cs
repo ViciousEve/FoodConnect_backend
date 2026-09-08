@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +38,60 @@ namespace FoodConnectAPI.Controllers
                 }
 
                 var posts = await _postService.GetAllPostsAsync(currentUserId);
+                return Ok(posts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
+            }
+        }
+        // GET /api/posts/{postId}
+        [HttpGet("{postId}")]
+        public async Task<IActionResult> GetPostById(int postId)
+        {
+            if (postId <= 0)
+                return BadRequest(new { error = "Invalid post ID." });
+
+            try
+            {
+                int? currentUserId = null;
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (userIdClaim != null && int.TryParse(userIdClaim, out int id))
+                        currentUserId = id;
+                }
+
+                var post = await _postService.GetPostByIdAsync(postId, currentUserId);
+                if (post == null)
+                    return NotFound(new { error = "Post not found." });
+
+                return Ok(post);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
+            }
+        }
+
+        // GET /api/users/{userId}/posts
+        [HttpGet("/api/users/{userId}/posts")]
+        public async Task<IActionResult> GetPostsByUserId(int userId)
+        {
+            if (userId <= 0)
+                return BadRequest(new { error = "Invalid user ID." });
+
+            try
+            {
+                int? currentUserId = null;
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (userIdClaim != null && int.TryParse(userIdClaim, out int id))
+                        currentUserId = id;
+                }
+
+                var posts = await _postService.GetPostsByUserIdAsync(userId, currentUserId);
                 return Ok(posts);
             }
             catch (Exception ex)
