@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,37 +14,7 @@ namespace FoodConnectAPI.Controllers
             _commentService = commentService;
         }
 
-        //[HttpGet("comments/by-post/{postId}")]
-        //public async Task<IActionResult> GetCommentsByPostId(int postId)
-        //{
-        //    if (postId <= 0)
-        //    {
-        //        return BadRequest(new { error = "Invalid post ID." });
-        //    }
-        //    try
-        //    {
-        //        var comments = await _commentService.GetCommentsByPostIdAsync(postId);
-        //        return Ok(comments);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { error = "An unexpected error occurred. Error: " + ex.Message });
-        //    }
-        //}
-
-        //[HttpPost("comments")]
-        //public async Task<IActionResult> AddComment([FromBody] CommentAddDto comment)
-        //{
-        //    if(!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-
-        //    await _commentService.CreateCommentAsync(comment);
-
-        //    return Ok(new { message = "Comment added successfully." });
-        //}
-
+        [Authorize]
         [HttpPatch("{commentId}")]
         public async Task<IActionResult> UpdateComment(int commentId, [FromBody] CommentUpdateDto comment)
         {
@@ -52,14 +22,27 @@ namespace FoodConnectAPI.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var updatedComment = await _commentService.UpdateCommentAsync(commentId, comment);
-            if (updatedComment == null)
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { error = "Invalid user token." });
+
+            var existingComment = await _commentService.GetCommentByIdAsync(commentId);
+            if (existingComment == null)
             {
                 return NotFound(new { error = "Comment not found." });
             }
+
+            if (existingComment.UserId != userId)
+            {
+                return StatusCode(403, new { error = "You are not the owner of this comment." });
+            }
+
+            var updatedComment = await _commentService.UpdateCommentAsync(commentId, comment);
             return Ok(updatedComment);
         }
 
+        [Authorize]
         [HttpDelete("{commentId}")]
         public async Task<IActionResult> DeleteComment(int commentId)
         {
@@ -67,11 +50,23 @@ namespace FoodConnectAPI.Controllers
             {
                 return BadRequest(new { error = "Invalid comment ID." });
             }
-            var isDeleted = await _commentService.DeleteCommentAsync(commentId);
-            if (isDeleted <= 0)
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { error = "Invalid user token." });
+
+            var existingComment = await _commentService.GetCommentByIdAsync(commentId);
+            if (existingComment == null)
             {
                 return NotFound(new { error = "Comment not found." });
             }
+
+            if (existingComment.UserId != userId)
+            {
+                return StatusCode(403, new { error = "You are not the owner of this comment." });
+            }
+
+            var isDeleted = await _commentService.DeleteCommentAsync(commentId);
             return Ok(new { message = "Comment deleted successfully." });
         }
     }
