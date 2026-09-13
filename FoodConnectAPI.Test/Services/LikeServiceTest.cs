@@ -10,12 +10,16 @@ namespace FoodConnectAPI.Test.Services
     public class LikeServiceTest
     {
         private readonly Mock<ILikeRepository> _mockLikeRepository;
+        private readonly Mock<IPostRepository> _mockPostRepository;
+        private readonly Mock<IUserRepository> _mockUserRepository;
         private readonly LikeService _likeService;
 
         public LikeServiceTest()
         {
             _mockLikeRepository = new Mock<ILikeRepository>();
-            _likeService = new LikeService(_mockLikeRepository.Object);
+            _mockPostRepository = new Mock<IPostRepository>();
+            _mockUserRepository = new Mock<IUserRepository>();
+            _likeService = new LikeService(_mockLikeRepository.Object, _mockPostRepository.Object, _mockUserRepository.Object);
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodConnectAPI.Controllers

@@ -70,7 +70,7 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
-//builder.Services.AddScoped<IFollowService, FollowService>();
+builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -100,7 +100,7 @@ if(app.Environment.IsDevelopment())
 
 // Configure the HTTP request pipeline.
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 // Serve static files from wwwroot folder
 app.UseStaticFiles();

@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using FoodConnectAPI.Data;
 using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
@@ -24,6 +24,7 @@ namespace FoodConnectAPI.Test.Services
         private readonly Mock<AppDbContext> _mockDbContext;
         private readonly Mock<IConfiguration> _mockConfiguration;
         private readonly Mock<IFileService> _mockFileService;
+        private readonly Mock<IFollowRepository> _mockFollowRepository;
         //private readonly Mock<IDbContextTransaction> _mockTransaction;
         private readonly UserService _userService;
 
@@ -33,6 +34,7 @@ namespace FoodConnectAPI.Test.Services
             _mockPostRepository = new Mock<IPostRepository>();
             _mockCommentRepository = new Mock<ICommentRepository>();
             _mockFileService = new Mock<IFileService>();
+            _mockFollowRepository = new Mock<IFollowRepository>();
 
             _mockConfiguration = MockConfigurationFactory.CreateJwtMock();
 
@@ -54,7 +56,8 @@ namespace FoodConnectAPI.Test.Services
                 _mockCommentRepository.Object,
                 _mockDbContext.Object,
                 _mockConfiguration.Object,
-                _mockFileService.Object
+                _mockFileService.Object,
+                _mockFollowRepository.Object
             );
         }
 
@@ -392,7 +395,8 @@ namespace FoodConnectAPI.Test.Services
                 _mockCommentRepository.Object,
                 _mockDbContext.Object,
                 mockConfigWithoutJwt.Object,
-                _mockFileService.Object
+                _mockFileService.Object,
+                _mockFollowRepository.Object
             );
 
             _mockUserRepository.Setup(x => x.GetUserByEmailAsync(loginDto.Email))
