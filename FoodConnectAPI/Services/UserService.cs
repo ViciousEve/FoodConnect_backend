@@ -22,13 +22,6 @@ namespace FoodConnectAPI.Services
         private readonly IFileService _fileService;
         private readonly IFollowRepository _followRepository;
 
-        const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
-        // Allowed extensions (lowercase)
-        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".webp"
-        };
-
         public UserService(IUserRepository userRepository, IPostRepository postRepository,
             ICommentRepository commentRepository, AppDbContext dbContext,
             IConfiguration configuration, IFileService fileService, IFollowRepository followRepository)
@@ -234,22 +227,7 @@ namespace FoodConnectAPI.Services
                 throw new KeyNotFoundException($"User with ID {userId} not found");
             }
 
-            // Validate file size
-            if (profilePicture.Length > MaxFileSize)
-                throw new InvalidOperationException($"File {profilePicture.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
-
-            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
-
-            // Validate file extension
-            if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
-            {
-                throw new InvalidOperationException($"File {profilePicture.FileName} has an invalid or unsupported extension.");
-            }
-            //Vilidate MIME type for images
-            if (!profilePicture.ContentType.StartsWith("image/"))
-            {
-                throw new InvalidOperationException($"File {profilePicture.FileName} is not a valid image.");
-            }
+            _fileService.ValidateImageFile(profilePicture);
 
             var relativePath = await _fileService.SaveFileAsync(profilePicture, "Uploads");
 

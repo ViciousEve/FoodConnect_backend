@@ -34,13 +34,17 @@ builder.Services.AddCors(options =>
 // Add Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("fixed", builder =>
-    {
-        builder.Window = TimeSpan.FromMinutes(1);
-        builder.PermitLimit = 100; // Allow 100 requests per minute
-        builder.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        builder.QueueLimit = 10; // Allow up to 10 requests in the queue
-    });
+    options.RejectionStatusCode = 429;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 // Add configuration validation
@@ -96,7 +100,7 @@ if(app.Environment.IsDevelopment())
 
 // Configure the HTTP request pipeline.
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 // Serve static files from wwwroot folder
 app.UseStaticFiles();

@@ -18,12 +18,6 @@ namespace FoodConnectAPI.Services
         private readonly AppDbContext _dbContext;
         private readonly ITagService _tagService;
         private readonly IFileService _fileService;
-        const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
-        // Allowed extensions (lowercase)
-        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".webp"
-        };
 
         public PostService(IPostRepository postRepository, ICommentRepository commentRepository,
             ILikeRepository likeRepository,IMediaRepository mediaRepository , 
@@ -258,22 +252,7 @@ namespace FoodConnectAPI.Services
                 {
                     if (file.Length > 0)
                     {
-                        // Validate file size
-                        if (file.Length > MaxFileSize)
-                            throw new InvalidOperationException($"File {file.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
-
-                        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                        // Validate file extension
-                        if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
-                        {
-                            throw new InvalidOperationException($"File {file.FileName} has an invalid or unsupported extension.");
-                        }
-                        //Vilidate MIME type for images
-                        if (!file.ContentType.StartsWith("image/"))
-                        {
-                            throw new InvalidOperationException($"File {file.FileName} is not a valid image.");
-                        }
+                        _fileService.ValidateImageFile(file);
 
                         var relativePath = await _fileService.SaveFileAsync(file, "Uploads");
                         savedImageUrls.Add(relativePath);
@@ -337,15 +316,7 @@ namespace FoodConnectAPI.Services
                 {
                     if (file.Length == 0) continue;
 
-                    if (file.Length > MaxFileSize)
-                        throw new InvalidOperationException($"File {file.FileName} exceeds max size {MaxFileSize / (1024 * 1024)} MB.");
-
-                    var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                    if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
-                        throw new InvalidOperationException($"Invalid extension: {ext}.");
-
-                    if (!file.ContentType.StartsWith("image/"))
-                        throw new InvalidOperationException($"File {file.FileName} is not a valid image.");
+                    _fileService.ValidateImageFile(file);
 
                     var relativePath = await _fileService.SaveFileAsync(file, "Uploads");
                     savedImageUrls.Add(relativePath);
