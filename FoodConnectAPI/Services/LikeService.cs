@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Repositories;
+using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Entities;
 
@@ -7,9 +7,14 @@ namespace FoodConnectAPI.Services
     public class LikeService : ILikeService
     {
         private readonly ILikeRepository _likeRepository;
-        public LikeService(ILikeRepository likeRepository)
+        private readonly IPostRepository _postRepository;
+        private readonly IUserRepository _userRepository;
+
+        public LikeService(ILikeRepository likeRepository, IPostRepository postRepository, IUserRepository userRepository)
         {
             _likeRepository = likeRepository;
+            _postRepository = postRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<bool> LikePostAsync(int userId, int postId)
@@ -29,6 +34,19 @@ namespace FoodConnectAPI.Services
 
             await _likeRepository.CreateLikeAsync(like);
             await _likeRepository.SaveChangesAsync();
+
+            var post = await _postRepository.GetPostByIdAsync(postId);
+            if (post != null)
+            {
+                var postOwner = await _userRepository.GetUserByIdAsync(post.UserId);
+                if (postOwner != null)
+                {
+                    postOwner.TotalLikesReceived++;
+                    await _userRepository.UpdateUserAsync(postOwner);
+                    await _userRepository.SaveChangesAsync();
+                }
+            }
+
             return true;
         }
 
@@ -40,6 +58,19 @@ namespace FoodConnectAPI.Services
             var deleted = await _likeRepository.DeleteLikeByUserAndPostAsync(userId, postId);
             if (!deleted) return false; // no-op
             await _likeRepository.SaveChangesAsync();
+
+            var post = await _postRepository.GetPostByIdAsync(postId);
+            if (post != null)
+            {
+                var postOwner = await _userRepository.GetUserByIdAsync(post.UserId);
+                if (postOwner != null && postOwner.TotalLikesReceived > 0)
+                {
+                    postOwner.TotalLikesReceived--;
+                    await _userRepository.UpdateUserAsync(postOwner);
+                    await _userRepository.SaveChangesAsync();
+                }
+            }
+
             return true;
         }
 

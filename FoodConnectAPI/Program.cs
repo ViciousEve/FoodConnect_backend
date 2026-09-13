@@ -114,10 +114,13 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Seed test data if database is empty
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DataSeeder.SeedTestDataAsync(context);
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await DataSeeder.SeedTestDataAsync(context);
+    }
 }
 
 app.Run();

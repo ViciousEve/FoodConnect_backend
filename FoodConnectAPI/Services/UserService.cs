@@ -44,6 +44,8 @@ namespace FoodConnectAPI.Services
 
         public async Task DeleteAsync(string email)
         {
+            var filesToDelete = new List<string>();
+
             using (var transaction = await _dbContext.Database.BeginTransactionAsync())
             {
                 try
@@ -56,6 +58,11 @@ namespace FoodConnectAPI.Services
                         throw new KeyNotFoundException($"User with email {email} not found");
                     }
 
+                    if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                    {
+                        filesToDelete.Add(user.ProfilePictureUrl);
+                    }
+
                     // Delete all posts by user (and their related comments via PostService logic)
                     var posts = await _postRepository.GetPostsByUserIdAsync(user.Id);
                     if (posts == null)
@@ -64,6 +71,14 @@ namespace FoodConnectAPI.Services
                     }
                     foreach (var post in posts)
                     {
+                        if (post.Images != null)
+                        {
+                            foreach (var img in post.Images)
+                            {
+                                if (img.Url.StartsWith("/Uploads"))
+                                    filesToDelete.Add(img.Url);
+                            }
+                        }
                         await _postRepository.DeletePostAsync(post.Id);
                     }
                     await _postRepository.SaveChangesAsync();
@@ -85,6 +100,12 @@ namespace FoodConnectAPI.Services
                     await _userRepository.SaveChangesAsync();
 
                     await transaction.CommitAsync();
+
+                    // Delete physical files
+                    foreach (var file in filesToDelete)
+                    {
+                        _fileService.DeleteFile(file);
+                    }
                 }
                 catch
                 {
@@ -231,6 +252,11 @@ namespace FoodConnectAPI.Services
             }
 
             var relativePath = await _fileService.SaveFileAsync(profilePicture, "Uploads");
+
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
+                _fileService.DeleteFile(user.ProfilePictureUrl);
+            }
 
             // Update user's profile picture URL
             user.ProfilePictureUrl = relativePath;

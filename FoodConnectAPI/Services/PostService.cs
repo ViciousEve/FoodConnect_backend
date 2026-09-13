@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Entities;
+using FoodConnectAPI.Entities;
 using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Data;
@@ -62,6 +62,7 @@ namespace FoodConnectAPI.Services
                 TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
                 ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
                 Likes = post.PostLikes.Count,
+                UserName = post.User?.UserName,
                 IsLikedByCurrentUser = currentUserId.HasValue && post.PostLikes.Any(l => l.UserId == currentUserId.Value)
             };
             return postInfoDto;
@@ -117,6 +118,7 @@ namespace FoodConnectAPI.Services
                 TagNames = post.PostTags.Select(pt => pt.Tag.Name).ToList(),
                 ImagesUrl = post.Images?.Select(i => i.Url).ToList() ?? new List<string>(),
                 Likes = post.PostLikes.Count,
+                UserName = post.User?.UserName,
                 IsLikedByCurrentUser = currentUserId.HasValue && post.PostLikes.Any(l => l.UserId == currentUserId.Value)
             }).ToList();
             return postDtos;
