@@ -447,6 +447,7 @@ namespace FoodConnectAPI.Test.Services
             user.ProfilePictureUrl.Should().Be(filePath);
             _mockUserRepository.Verify(x => x.UpdateUserAsync(It.Is<User>(u => u == user)), Times.Once);
             _mockUserRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
+            _mockFileService.Verify(x => x.ValidateImageFile(formFile), Times.Once);
             _mockFileService.Verify(x => x.SaveFileAsync(formFile, "Uploads"), Times.Once);
         }
 
@@ -500,11 +501,17 @@ namespace FoodConnectAPI.Test.Services
                 ContentType = contentType
             };
             _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync(user);
+            _mockFileService.Setup(x => x.ValidateImageFile(formFile))
+                .Throws(new InvalidOperationException($"File {fileName} has an invalid or unsupported extension."));
 
             // Act & Assert
             var exception = await FluentActions.Invoking(() => _userService.UpdateProfilePicture(userId, formFile))
                 .Should().ThrowAsync<InvalidOperationException>();
             exception.Which.Message.Should().Be($"File {fileName} has an invalid or unsupported extension.");
+
+            _mockFileService.Verify(x => x.ValidateImageFile(formFile), Times.Once);
+            _mockFileService.Verify(x => x.SaveFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+            _mockUserRepository.Verify(x => x.UpdateUserAsync(It.IsAny<User>()), Times.Never);
         }
 
         [Fact]
@@ -534,10 +541,17 @@ namespace FoodConnectAPI.Test.Services
                 ContentType = contentType
             };
             _mockUserRepository.Setup(x => x.GetUserForUpdateAsync(userId)).ReturnsAsync(user);
+            _mockFileService.Setup(x => x.ValidateImageFile(formFile))
+                .Throws(new InvalidOperationException($"File {fileName} is not a valid image."));
+
             // Act & Assert
             var exception = await FluentActions.Invoking(() => _userService.UpdateProfilePicture(userId, formFile))
                 .Should().ThrowAsync<InvalidOperationException>();
             exception.Which.Message.Should().Be($"File {fileName} is not a valid image.");
+
+            _mockFileService.Verify(x => x.ValidateImageFile(formFile), Times.Once);
+            _mockFileService.Verify(x => x.SaveFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+            _mockUserRepository.Verify(x => x.UpdateUserAsync(It.IsAny<User>()), Times.Never);
         }
 
         [Fact]
@@ -545,7 +559,7 @@ namespace FoodConnectAPI.Test.Services
         {
             // Arrange
             _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(It.IsAny<int>()))
-                .ReturnsAsync((User)null);
+                .ReturnsAsync((User?)null);
 
             var dto = new UserUpdateDto { Email = "new@mail.com" };
 
@@ -591,7 +605,7 @@ namespace FoodConnectAPI.Test.Services
 
             // Simulate email is available
             _mockUserRepository.Setup(r => r.GetUserByEmailAsync("user@mail.com"))
-                .ReturnsAsync((User)null);
+                .ReturnsAsync((User?)null);
 
             var dto = new UserUpdateDto
             {
@@ -627,7 +641,7 @@ namespace FoodConnectAPI.Test.Services
 
             // Email is available
             _mockUserRepository.Setup(r => r.GetUserByEmailAsync("new@mail.com"))
-                .ReturnsAsync((User)null);
+                .ReturnsAsync((User?)null);
 
             var dto = new UserUpdateDto
             {
@@ -658,7 +672,7 @@ namespace FoodConnectAPI.Test.Services
             _mockUserRepository.Setup(r => r.GetUserForUpdateAsync(1))
                 .ReturnsAsync(user);
             _mockUserRepository.Setup(r => r.GetUserByEmailAsync("user@mail.com"))
-                .ReturnsAsync((User)null); // email is available
+                .ReturnsAsync((User?)null); // email is available
 
             var dto = new UserUpdateDto
             {
