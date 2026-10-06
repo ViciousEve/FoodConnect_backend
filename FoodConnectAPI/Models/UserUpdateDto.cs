@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace FoodConnectAPI.Models
 {
@@ -13,11 +13,9 @@ namespace FoodConnectAPI.Models
         [EmailAddress]
         public string Email { get; set; }
 
-        [Required]
         [MinLength(8)]
         public string Password { get; set; }
 
-        [Required]
         [MinLength(8)]
         public string ConfirmPassword { get; set; }
 

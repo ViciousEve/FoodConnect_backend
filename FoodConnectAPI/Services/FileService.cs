@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Services;
+using FoodConnectAPI.Interfaces.Services;
 
 namespace FoodConnectAPI.Services
 {
@@ -6,9 +6,34 @@ namespace FoodConnectAPI.Services
     {
         private readonly string _rootPath;
         private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
+        {
+            ".jpg", ".jpeg", ".png", ".gif", ".webp"
+        };
+        
         public FileService(string rootPath = null)
         {
             _rootPath = rootPath ?? Directory.GetCurrentDirectory();
+        }
+
+        public void ValidateImageFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                throw new InvalidOperationException("File is empty or null.");
+
+            if (file.Length > MaxFileSize)
+                throw new InvalidOperationException($"File {file.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
+
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
+            {
+                throw new InvalidOperationException($"File {file.FileName} has an invalid or unsupported extension.");
+            }
+
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                throw new InvalidOperationException($"File {file.FileName} is not a valid image.");
+            }
         }
 
         public void DeleteFile(string relativePath)

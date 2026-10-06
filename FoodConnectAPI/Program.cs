@@ -34,13 +34,17 @@ builder.Services.AddCors(options =>
 // Add Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("fixed", builder =>
-    {
-        builder.Window = TimeSpan.FromMinutes(1);
-        builder.PermitLimit = 100; // Allow 100 requests per minute
-        builder.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        builder.QueueLimit = 10; // Allow up to 10 requests in the queue
-    });
+    options.RejectionStatusCode = 429;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 // Add configuration validation
@@ -63,10 +67,11 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 // Register services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
-//builder.Services.AddScoped<IFollowService, FollowService>();
+builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -82,6 +87,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -113,10 +119,13 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Seed test data if database is empty
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DataSeeder.SeedTestDataAsync(context);
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await DataSeeder.SeedTestDataAsync(context);
+    }
 }
 
 app.Run();

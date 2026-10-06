@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Interfaces.Repositories;
+using FoodConnectAPI.Interfaces.Repositories;
 using FoodConnectAPI.Interfaces.Services;
 using FoodConnectAPI.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -20,17 +20,11 @@ namespace FoodConnectAPI.Services
         private readonly AppDbContext _dbContext;
         private readonly IConfiguration _configuration;
         private readonly IFileService _fileService;
-
-        const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
-        // Allowed extensions (lowercase)
-        private static readonly HashSet<string> AllowedExtensions = new HashSet<string>
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".webp"
-        };
+        private readonly IFollowRepository _followRepository;
 
         public UserService(IUserRepository userRepository, IPostRepository postRepository,
             ICommentRepository commentRepository, AppDbContext dbContext,
-            IConfiguration configuration, IFileService fileService)
+            IConfiguration configuration, IFileService fileService, IFollowRepository followRepository)
         {
             _userRepository = userRepository;
             _postRepository = postRepository;
@@ -38,10 +32,13 @@ namespace FoodConnectAPI.Services
             _dbContext = dbContext;
             _configuration = configuration;
             _fileService = fileService;
+            _followRepository = followRepository;
         }
 
         public async Task DeleteAsync(string email)
         {
+            var filesToDelete = new List<string>();
+
             using (var transaction = await _dbContext.Database.BeginTransactionAsync())
             {
                 try
@@ -54,6 +51,11 @@ namespace FoodConnectAPI.Services
                         throw new KeyNotFoundException($"User with email {email} not found");
                     }
 
+                    if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                    {
+                        filesToDelete.Add(user.ProfilePictureUrl);
+                    }
+
                     // Delete all posts by user (and their related comments via PostService logic)
                     var posts = await _postRepository.GetPostsByUserIdAsync(user.Id);
                     if (posts == null)
@@ -62,6 +64,14 @@ namespace FoodConnectAPI.Services
                     }
                     foreach (var post in posts)
                     {
+                        if (post.Images != null)
+                        {
+                            foreach (var img in post.Images)
+                            {
+                                if (img.Url.StartsWith("/Uploads"))
+                                    filesToDelete.Add(img.Url);
+                            }
+                        }
                         await _postRepository.DeletePostAsync(post.Id);
                     }
                     await _postRepository.SaveChangesAsync();
@@ -83,6 +93,12 @@ namespace FoodConnectAPI.Services
                     await _userRepository.SaveChangesAsync();
 
                     await transaction.CommitAsync();
+
+                    // Delete physical files
+                    foreach (var file in filesToDelete)
+                    {
+                        _fileService.DeleteFile(file);
+                    }
                 }
                 catch
                 {
@@ -138,7 +154,8 @@ namespace FoodConnectAPI.Services
                 Subject = new ClaimsIdentity(new Claim[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email)
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Role)
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(expirationMinutes), // Token expiration time
                 Issuer = _configuration["Jwt:Issuer"],
@@ -210,24 +227,14 @@ namespace FoodConnectAPI.Services
                 throw new KeyNotFoundException($"User with ID {userId} not found");
             }
 
-            // Validate file size
-            if (profilePicture.Length > MaxFileSize)
-                throw new InvalidOperationException($"File {profilePicture.FileName} exceeds the maximum size of {MaxFileSize / (1024 * 1024)} MB.");
-
-            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
-
-            // Validate file extension
-            if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
-            {
-                throw new InvalidOperationException($"File {profilePicture.FileName} has an invalid or unsupported extension.");
-            }
-            //Vilidate MIME type for images
-            if (!profilePicture.ContentType.StartsWith("image/"))
-            {
-                throw new InvalidOperationException($"File {profilePicture.FileName} is not a valid image.");
-            }
+            _fileService.ValidateImageFile(profilePicture);
 
             var relativePath = await _fileService.SaveFileAsync(profilePicture, "Uploads");
+
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
+                _fileService.DeleteFile(user.ProfilePictureUrl);
+            }
 
             // Update user's profile picture URL
             user.ProfilePictureUrl = relativePath;
@@ -281,6 +288,32 @@ namespace FoodConnectAPI.Services
                 Email = user.DisplayEmail != null ? user.DisplayEmail : user.Email,
                 Region = user.Region,
                 Token = tokenString //Could cause issues if old token is still valid 
+            };
+        }
+
+        public async Task<UserProfileDto> GetUserProfileAsync(int userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var followerCount = await _followRepository.GetFollowerCountAsync(userId);
+            var followingCount = await _followRepository.GetFollowingCountAsync(userId);
+            var posts = await _postRepository.GetPostsByUserIdAsync(userId);
+            var postCount = posts?.Count() ?? 0;
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Region = user.Region,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                TotalLikesReceived = user.TotalLikesReceived,
+                FollowerCount = followerCount,
+                FollowingCount = followingCount,
+                PostCount = postCount
             };
         }
 

@@ -1,4 +1,4 @@
-﻿using FoodConnectAPI.Models;
+using FoodConnectAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodConnectAPI.Interfaces.Services
@@ -10,6 +10,7 @@ namespace FoodConnectAPI.Interfaces.Services
         Task<bool> IsEmailAvailableAsync(string email);
         Task UpdateProfilePicture(int userId, IFormFile profilePicture);
         Task<UserDto> UpdateProfile(int userId, UserUpdateDto userUpdateDto);
+        Task<UserProfileDto> GetUserProfileAsync(int userId);
         Task DeleteAsync(string email);
     }
 }
